@@ -1,20 +1,24 @@
 import flet as ft
-from config import DB_MODE
-from database import db_sqlite, db_supabase
+from database.local_db import init_db, get_db
 from pages.landing_page import LandingPage
 from pages.input_page import InputPage
 from pages.result_page import ResultPage
 from pages.history_page import HistoryPage
 
-# Select database source
-db = db_sqlite if DB_MODE == "sqlite" else db_supabase
-
 def main(page: ft.Page):
+    init_db()
+    db = next(get_db())
     page.title = "POPViz - Protein Structure Predictor"
     page.window_width = 900
     page.window_height = 700
     page.theme_mode = ft.ThemeMode.LIGHT
     page.scroll = "adaptive"
+
+    # Create page instances
+    landing_page = LandingPage(page)
+    input_page = InputPage(page)
+    result_page = ResultPage(page)
+    history_page = HistoryPage(page)
 
     def route_change(route):
         page.views.clear()
@@ -22,13 +26,13 @@ def main(page: ft.Page):
 
         match route_name:
             case "":
-                page.views.append(LandingPage(page, db))
+                page.views.append(landing_page.build())
             case "input":
-                page.views.append(InputPage(page, db))
+                page.views.append(input_page.build())
             case "result":
-                page.views.append(ResultPage(page, db))
+                page.views.append(result_page.build())
             case "history":
-                page.views.append(HistoryPage(page, db))
+                page.views.append(history_page.build())
             case _:
                 page.views.append(ft.View("/", [ft.Text("404 Not Found")]))
 
