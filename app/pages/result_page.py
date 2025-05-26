@@ -154,8 +154,8 @@ class ResultPage:
                 bgcolor="#FAF2C1",
                 center_title=False,
                 actions=[
-                    ft.TextButton("Protein Prediction", color="#065D30"),
-                    ft.TextButton("History", color="#065D30"),
+                    ft.TextButton("Protein Prediction", on_click=lambda _: self.page.go("/input")),
+                    ft.TextButton("History", on_click=lambda _: self.page.go("/history")),
                 ]
             ),
             scroll=ft.ScrollMode.AUTO,
