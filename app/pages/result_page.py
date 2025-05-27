@@ -6,362 +6,335 @@ class ResultPage:
     def __init__(self, page: ft.Page):
         self.page = page
         self.db = next(get_db())
-        
-        # Example protein sequence result (placeholder)
-        self.sequence = "HHHCCCCCCEEEEEEECCCCCCCCHHHHHCCCCCCEEEEEEEECCCCCCCCHHHHHHHHCCEEEEE"
-        
+        self.sequence = "HHHCCCCCCEEEEEEECCCCCCCCHHHHHCCCCCCEEEEEEEECCCCCC"
+
     def build(self):
-        # Back button
-        back_button = ft.IconButton(
-            icon=ft.icons.ARROW_BACK,
-            icon_color="#065D30",
-            on_click=lambda _: self.page.go("/")
-        )
-        
-        # Download button
-        download_button = ft.ElevatedButton(
-            "Download Protein Information",
-            icon=ft.icons.DOWNLOAD,
+        # Main sequence visualization with title and download button
+        sequence_section = ft.Container(
+            margin=ft.margin.only(top=20),
+            padding=ft.padding.all(30),
             bgcolor="#065D30",
-            color=ft.colors.WHITE,
-            style=ft.ButtonStyle(
-                shape=ft.RoundedRectangleBorder(radius=10)
-            )
-        )
-        
-        # Visualization of the protein sequence with formatting
-        # Converting sequence to a colored representation
-        sequence_visualization = self.create_sequence_visualization()
-        
-        # Structure visualization placeholder
-        structure_image = ft.Column([
-            ft.Row([
-                ft.Container(
-                    content=ft.Image(
-                        src="assets/alpha_helix.png",  # Placeholder image path
-                        width=200,
-                        height=120,
-                        fit=ft.ImageFit.CONTAIN
-                    ),
-                    padding=10,
-                    border_radius=10,
-                ),
-                ft.Container(
-                    content=ft.Image(
-                        src="assets/beta_sheet.png",  # Placeholder image path
-                        width=200,
-                        height=120,
-                        fit=ft.ImageFit.CONTAIN
-                    ),
-                    padding=10,
-                    border_radius=10,
-                )
-            ], alignment=ft.MainAxisAlignment.CENTER),
-            ft.Text("Secondary Structure", weight=ft.FontWeight.BOLD)
-        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
-        
-        # Insights section
-        insights = ft.Container(
-            width=700,
-            padding=20,
-            bgcolor="#F5F9F5",
-            border_radius=10,
+            border_radius=15,
             content=ft.Column([
-                ft.Text("Insights:", weight=ft.FontWeight.BOLD, color="#065D30"),
-                ft.Container(height=10),
-                
-                ft.Text(
-                    "High Proportion of Helices (H): The sequence contains several stretches of "
-                    "helices, particularly in the first and last sections. This suggests that the protein "
-                    "may have a significant structural role, such as forming a stable scaffold or a core structure.",
-                    color="#333333"
-                ),
-                ft.Container(height=10),
-                
-                ft.Text(
-                    "Beta Sheets (E): There are several sections with beta sheets, indicating that the "
-                    "protein might have regions involved in creating stable interactions or structural "
-                    "rigidity through sheet formation.",
-                    color="#333333"
-                ),
-                ft.Container(height=10),
-                
-                ft.Text(
-                    "Coil Regions (C): The coil regions (loops) in between the helices and sheets "
-                    "suggest flexibility, which is important for the protein's ability to interact with other "
-                    "molecules or undergo conformational changes.",
-                    color="#333333"
-                ),
-                ft.Container(height=10),
-                
-                ft.Text(
-                    "Overall, the presence of alternating regions of helices, sheets, and coils suggests "
-                    "that this protein might have a dynamic, well-structured fold, combining stability "
-                    "(from helices and sheets) with flexibility (from coils), which is typical for many "
-                    "functional proteins like enzymes or receptors.",
-                    color="#333333"
-                ),
+                # Centered title with download button positioned absolutely
+                ft.Stack([
+                    # Centered title
+                    ft.Container(
+                        content=ft.Text(
+                            "Protein Sequence Result",
+                            size=22,
+                            weight=ft.FontWeight.BOLD,
+                            color=ft.Colors.WHITE,
+                            text_align=ft.TextAlign.CENTER
+                        ),
+                        alignment=ft.alignment.center,
+                        expand=True
+                    ),
+                    # Download button positioned on the right
+                    ft.Container(
+                        content=ft.Container(
+                            width=36,
+                            height=36,
+                            content=ft.PopupMenuButton(
+                                icon=ft.Icons.DOWNLOAD,
+                                tooltip="Download Options",
+                                items=[
+                                    ft.PopupMenuItem(
+                                        text="Download as PDF",
+                                        on_click=lambda _: print("Download PDF")
+                                    ),
+                                    ft.PopupMenuItem(
+                                        text="Download as CSV",
+                                        on_click=lambda _: print("Download CSV")
+                                    ),
+                                    ft.PopupMenuItem(
+                                        text="Download as FASTA",
+                                        on_click=lambda _: print("Download FASTA")
+                                    ),
+                                ],
+                                style=ft.ButtonStyle(
+                                    bgcolor=ft.Colors.WHITE,
+                                    color="#065D30",
+                                    shape=ft.RoundedRectangleBorder(radius=6),
+                                    padding=ft.padding.all(4)
+                                )
+                            )
+                        ),
+                        alignment=ft.alignment.center_right
+                    )
+                ]),
+                ft.Container(height=30),
+                # Sequence visualization
+                self.create_sequence_visualization()
             ])
         )
-        
-        # Charts
-        chart_section = ft.Row([
-            # Pie chart placeholder
-            ft.Container(
-                width=350,
-                height=300,
-                padding=20,
-                bgcolor=ft.colors.WHITE,
-                border_radius=10,
-                content=ft.Column([
-                    ft.Text("Predicted Protein Structure Distribution", 
-                           size=14, 
-                           weight=ft.FontWeight.BOLD,
-                           text_align=ft.TextAlign.CENTER),
+
+        # Structure images and insights section
+        content_section = ft.Container(
+            margin=ft.margin.only(top=20),
+            padding=ft.padding.all(30),
+            bgcolor="#E8F5E8",
+            border_radius=15,
+            content=ft.Column([
+                ft.Row([
+                    # Left side - Structure images
                     ft.Container(
-                        content=self.create_pie_chart_placeholder(),
-                        alignment=ft.alignment.center,
-                    )
-                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
-            ),
-            
-            # Bar chart placeholder
-            ft.Container(
-                width=350,
-                height=300,
-                padding=20,
-                bgcolor=ft.colors.WHITE,
-                border_radius=10,
-                content=ft.Column([
-                    ft.Text("Comparison with Known Protein Data", 
-                           size=14, 
-                           weight=ft.FontWeight.BOLD,
-                           text_align=ft.TextAlign.CENTER),
-                    ft.Container(
-                        content=self.create_bar_chart_placeholder(),
-                        alignment=ft.alignment.center,
-                    )
-                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
-            ),
-        ], alignment=ft.MainAxisAlignment.CENTER)
-        
-        # Main content of the page
-        return ft.View(
-            route="/result",
-            bgcolor="#FAF2C1",
-            appbar=ft.AppBar(
-                title=Navbar(self.page),
-                bgcolor="#FAF2C1",
-                center_title=False,
-                actions=[
-                    ft.TextButton("Protein Prediction", color="#065D30"),
-                    ft.TextButton("History", color="#065D30"),
-                ]
-            ),
-            scroll=ft.ScrollMode.AUTO,
-            content=ft.Container(
-                content=ft.Column([
-                    # Top section with title and download button
-                    ft.Row([
-                        back_button,
-                        ft.Container(width=20),
-                        ft.Text("Protein Sequence Result", size=18, color="#065D30", weight=ft.FontWeight.BOLD),
-                        ft.Spacer(),
-                        download_button
-                    ], alignment=ft.MainAxisAlignment.START),
-                    
-                    # Sequence visualization
-                    ft.Container(
-                        margin=ft.margin.only(top=20),
-                        padding=ft.padding.all(20),
-                        bgcolor="#065D30",
-                        border_radius=10,
-                        content=sequence_visualization
-                    ),
-                    
-                    # Main content with visualization, insights, and charts
-                    ft.Container(
-                        margin=ft.margin.only(top=20),
-                        padding=ft.padding.all(20),
-                        bgcolor="#E5F2E5",
-                        border_radius=10,
+                        width=500,
+                        height=400,
                         content=ft.Column([
-                            ft.Row([
-                                # Left side - structure visualization
-                                ft.Container(
-                                    width=300,
-                                    content=structure_image,
-                                    bgcolor=ft.colors.WHITE,
-                                    padding=20,
-                                    border_radius=10
-                                ),
-                                
-                                # Right side - insights
-                                insights
-                            ], alignment=ft.MainAxisAlignment.CENTER),
-                            
-                            # Bottom section - charts
+                            ft.Text(
+                                "Secondary Structure",
+                                weight=ft.FontWeight.BOLD,
+                                size=18,
+                                color="#065D30",
+                                text_align=ft.TextAlign.CENTER
+                            ),
+                            ft.Container(height=20),
+                            ft.Image(
+                                src="assets/structure.png",  # Ganti sesuai nama file kamu
+                                width=400,
+                                height=300,
+                                fit=ft.ImageFit.CONTAIN
+                            )
+                        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                        bgcolor=ft.Colors.WHITE,
+                        padding=25,
+                        border_radius=15,
+                        shadow=ft.BoxShadow(
+                            spread_radius=1,
+                            blur_radius=8,
+                            color=ft.Colors.with_opacity(0.1, ft.Colors.BLACK),
+                            offset=ft.Offset(0, 2)
+                        )
+                    ),
+                    ft.Container(width=30),  # Spacer
+                    # Right side - Insights
+                    ft.Container(
+                        width=500,
+                        height=400,
+                        padding=25,
+                        bgcolor=ft.Colors.WHITE,
+                        border_radius=15,
+                        shadow=ft.BoxShadow(
+                            spread_radius=1,
+                            blur_radius=8,
+                            color=ft.Colors.with_opacity(0.1, ft.Colors.BLACK),
+                            offset=ft.Offset(0, 2)
+                        ),
+                        content=ft.Column([
+                            # Centered Insights title
                             ft.Container(
-                                margin=ft.margin.only(top=20),
-                                content=chart_section
+                                content=ft.Text(
+                                    "Insights", 
+                                    weight=ft.FontWeight.BOLD, 
+                                    color="#065D30", 
+                                    size=18, 
+                                    text_align=ft.TextAlign.CENTER
+                                ),
+                                alignment=ft.alignment.center,
+                                width=450  # Full width of container minus padding
+                            ),
+                            ft.Container(height=20),
+                            ft.Container(
+                                content=ft.Column([
+                                    ft.Text(
+                                        "High Proportion of Helices (H): The sequence contains several stretches of helices, particularly in the first and last sections. This suggests that the protein may have a significant structural role, such as forming a stable scaffold or a core structure.",
+                                        color="#444444",
+                                        size=14,
+                                        text_align=ft.TextAlign.JUSTIFY
+                                    ),
+                                    ft.Container(height=15),
+                                    ft.Text(
+                                        "Beta Sheets (E): There are several sections with beta sheets, indicating that the protein might have regions involved in creating stable interactions or structural integrity through sheet formation.",
+                                        color="#444444",
+                                        size=14,
+                                        text_align=ft.TextAlign.JUSTIFY
+                                    ),
+                                    ft.Container(height=15),
+                                    ft.Text(
+                                        "Coil Regions (C): The coil regions (loops) in between the helices and sheets suggest flexibility, which is important for the protein's ability to interact with other molecules or undergo conformational changes.",
+                                        color="#444444",
+                                        size=14,
+                                        text_align=ft.TextAlign.JUSTIFY
+                                    ),
+                                    ft.Container(height=15),
+                                    ft.Text(
+                                        "Overall, the presence of alternating regions of helices, sheets, and coils suggests that this protein might have a dynamic, well-structured fold, combining stability (from helices and sheets) with flexibility (from coils), which is typical for many functional proteins like enzymes or receptors.",
+                                        color="#444444",
+                                        size=14,
+                                        text_align=ft.TextAlign.JUSTIFY
+                                    )
+                                ]),
+                                expand=True
                             )
                         ])
                     )
-                ]),
-                padding=ft.padding.all(20),
-                width=self.page.width,
-            ),
+                ], alignment=ft.MainAxisAlignment.CENTER),
+                ft.Container(height=40),
+                # Charts section
+                ft.Row([
+                    ft.Container(
+                        width=500,
+                        height=400,
+                        padding=25,
+                        bgcolor=ft.Colors.WHITE,
+                        border_radius=15,
+                        shadow=ft.BoxShadow(
+                            spread_radius=1,
+                            blur_radius=8,
+                            color=ft.Colors.with_opacity(0.1, ft.Colors.BLACK),
+                            offset=ft.Offset(0, 2)
+                        ),
+                        content=ft.Column([
+                            ft.Text(
+                                            "Predicted Protein Structure Distribution",
+                                            size=18,
+                                            weight=ft.FontWeight.BOLD,
+                                            color="#065D30",
+                                            text_align=ft.TextAlign.CENTER
+                                        ),
+                                        ft.Container(height=30),
+                                        ft.Container(
+                                            content=self.create_pie_chart_placeholder(),
+                                            alignment=ft.alignment.center,
+                                            expand=True
+                                        )
+                                    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+                                ),
+                    ft.Container(width=30),  # Spacer
+                    ft.Container(
+                        width=500,
+                        height=400,
+                        padding=25,
+                        bgcolor=ft.Colors.WHITE,
+                        border_radius=15,
+                        shadow=ft.BoxShadow(
+                            spread_radius=1,
+                            blur_radius=8,
+                            color=ft.Colors.with_opacity(0.1, ft.Colors.BLACK),
+                            offset=ft.Offset(0, 2)
+                        ),
+                        content=ft.Column([
+                            ft.Text(
+                                "Comparison with Known Protein Data",
+                                size=18,
+                                weight=ft.FontWeight.BOLD,
+                                color="#065D30",
+                                text_align=ft.TextAlign.CENTER
+                            ),
+                            ft.Container(height=30),
+                            ft.Container(
+                                content=self.create_bar_chart_placeholder(),
+                                alignment=ft.alignment.center,
+                                expand=True
+                            )
+                        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+                    )
+                ], alignment=ft.MainAxisAlignment.CENTER)
+            ])
         )
-        
+
+        return ft.View(
+            route="/result",
+            bgcolor="#FFFBEB",
+            scroll=ft.ScrollMode.AUTO,
+            appbar=ft.AppBar(
+                leading=ft.Container(),
+                title=Navbar(self.page),
+                center_title=False,
+                bgcolor="#FFE788",
+                toolbar_height=70,
+                actions=[
+                    ft.Container(
+                        content=ft.TextButton(
+                            "Protein Prediction",
+                            on_click=lambda _: self.page.go("/input"),
+                            style=ft.ButtonStyle(color="#0A5614")
+                        ),
+                        margin=ft.margin.only(right=30)
+                    ),
+                    ft.Container(
+                        content=ft.TextButton(
+                            "History",
+                            on_click=lambda _: self.page.go("/history"),
+                            style=ft.ButtonStyle(color="#0A5614")
+                        ),
+                        margin=ft.margin.only(right=70)
+                    )
+                ]
+            ),
+            controls=[
+                ft.Container(
+                    padding=ft.padding.all(30),
+                    content=ft.Column([
+                        # Back button
+                        ft.Container(
+                            alignment=ft.alignment.center_left,
+                            margin=ft.margin.only(bottom=15),
+                            content=ft.IconButton(
+                                icon=ft.Icons.ARROW_BACK,
+                                icon_color="#104911",
+                                icon_size=28,
+                                bgcolor="#FFFFFF",
+                                on_click=lambda _: self.page.go("input"),
+                                style=ft.ButtonStyle(
+                                    shape=ft.CircleBorder(),
+                                    padding=ft.padding.all(12),
+                                    side=ft.BorderSide(1, "#DDDDDD")
+                                )
+                            )
+                        ),
+                        # Main content
+                        sequence_section,
+                        content_section
+                    ])
+                )
+            ]
+        )
+
     def create_sequence_visualization(self):
-        """Create a visualization of the protein sequence with color coding"""
         sequence_row = ft.Row(
             wrap=True,
-            spacing=0,
+            spacing=3,
             alignment=ft.MainAxisAlignment.CENTER
         )
-        
+
         for char in self.sequence:
-            color = "#FFFFFF"  # Default color
             if char == "H":
                 color = "#FFC107"  # Yellow for Helix
             elif char == "E":
-                color = "#065D30"  # Green for Sheet
+                color = "#FFFFFF"  # White for Sheet
             elif char == "C":
-                color = "#3F51B5"  # Blue for Coil
-                
+                color = "#87CEEB"  # Light blue for Coil
+            else:
+                color = "#FFFFFF"
+
             sequence_row.controls.append(
                 ft.Container(
-                    content=ft.Text(char, color=color, weight=ft.FontWeight.BOLD),
-                    width=14,
-                    height=20,
+                    content=ft.Text(char, color=color, weight=ft.FontWeight.BOLD, size=14),
+                    width=18,
+                    height=28,
                     alignment=ft.alignment.center
                 )
             )
-            
-        return sequence_row
-    
-    def create_pie_chart_placeholder(self):
-        """Create a placeholder for the pie chart"""
-        # This is a simple visual placeholder using Container objects
-        return ft.Stack([
-            # Main circle
-            ft.Container(
-                width=200,
-                height=200,
-                border_radius=100,
-                bgcolor="#FFC107",  # Helix - yellow
-            ),
-            # Sheet section - dark green
-            ft.Container(
-                width=200,
-                height=200,
-                border_radius=100,
-                bgcolor="#065D30",
-                clip_behavior=ft.ClipBehavior.HARD_EDGE,
-                right=100,
-                bottom=0,
-            ),
-            # Coil section - small slice
-            ft.Container(
-                width=200,
-                height=200,
-                border_radius=100,
-                bgcolor="#3F51B5",
-                clip_behavior=ft.ClipBehavior.HARD_EDGE,
-                right=170,
-                bottom=0,
-            ),
-            # Labels
-            ft.Container(
-                content=ft.Column([
-                    ft.Row([
-                        ft.Container(width=10, height=10, bgcolor="#065D30"),
-                        ft.Text("Sheet", size=12)
-                    ]),
-                    ft.Row([
-                        ft.Container(width=10, height=10, bgcolor="#FFC107"),
-                        ft.Text("Helix", size=12)
-                    ]),
-                    ft.Row([
-                        ft.Container(width=10, height=10, bgcolor="#3F51B5"),
-                        ft.Text("Coil", size=12)
-                    ]),
-                ]),
-                right=0,
-                bottom=0,
-            ),
-            # Percentages
-            ft.Container(
-                content=ft.Column([
-                    ft.Text("60%", size=14, color=ft.colors.BLACK),
-                    ft.Text("30%", size=14, color=ft.colors.WHITE),
-                    ft.Text("10%", size=14, color=ft.colors.WHITE),
-                ]),
-                left=50,
-                top=70,
-            ),
-        ])
-    
-    def create_bar_chart_placeholder(self):
-        """Create a placeholder for the bar chart"""
-        # This is a simple visual placeholder using Row and Container objects
+
         return ft.Container(
-            width=300,
-            height=200,
-            content=ft.Row([
-                # Helix bars
-                ft.Column([
-                    ft.Container(
-                        width=50,
-                        height=120,
-                        bgcolor="#FFC107",  # Predicted - yellow
-                    ),
-                    ft.Container(height=5),
-                    ft.Container(
-                        width=50,
-                        height=100,
-                        bgcolor="#FF9800",  # Known - orange
-                    ),
-                    ft.Text("Helix", size=12),
-                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-                
-                ft.Container(width=30),  # Spacer
-                
-                # Sheet bars
-                ft.Column([
-                    ft.Container(
-                        width=50,
-                        height=70,
-                        bgcolor="#065D30",  # Predicted - green
-                    ),
-                    ft.Container(height=5),
-                    ft.Container(
-                        width=50,
-                        height=90,
-                        bgcolor="#4CAF50",  # Known - light green
-                    ),
-                    ft.Text("Sheet", size=12),
-                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-                
-                ft.Container(width=30),  # Spacer
-                
-                # Coil bars
-                ft.Column([
-                    ft.Container(
-                        width=50,
-                        height=30,
-                        bgcolor="#3F51B5",  # Predicted - blue
-                    ),
-                    ft.Container(height=5),
-                    ft.Container(
-                        width=50,
-                        height=30,
-                        bgcolor="#2196F3",  # Known - light blue
-                    ),
-                    ft.Text("Coil", size=12),
-                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-            ], alignment=ft.MainAxisAlignment.CENTER, vertical_alignment=ft.CrossAxisAlignment.END),
-            alignment=ft.alignment.bottom_center,
-            margin=ft.margin.only(top=10)
+            alignment=ft.alignment.center,
+            content=sequence_row
+        )
+        
+    def create_pie_chart_placeholder(self):
+        return ft.Image(
+            src="assets/pie_chart.png",
+            width=350,
+            height=350,
+            fit=ft.ImageFit.CONTAIN
+        )
+
+    def create_bar_chart_placeholder(self):
+        return ft.Image(
+            src="assets/bar_chart.png",
+            width=450,
+            height=300,
+            fit=ft.ImageFit.CONTAIN
         )

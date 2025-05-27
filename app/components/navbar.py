@@ -7,12 +7,11 @@ def Navbar(page):
         return handler
 
     return ft.GestureDetector(
-    content=ft.Row([
-        ft.Text("POPV", size=20, weight=ft.FontWeight.BOLD),
-        ft.Image(src="assets/helix.png", height=20),
-        ft.Text("Z", size=20, weight=ft.FontWeight.BOLD),
-    ]),
-    on_tap=go_to("/"),
-    mouse_cursor=ft.MouseCursor.CLICK
-)
-
+        content=ft.Image(
+            src="assets/logo.png",
+            height=40,
+            fit=ft.ImageFit.CONTAIN,
+        ),
+        on_tap=go_to("/"),
+        mouse_cursor=ft.MouseCursor.CLICK
+    )
