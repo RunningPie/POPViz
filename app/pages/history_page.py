@@ -34,13 +34,13 @@ class HistoryPage:
                         ft.DataCell(
                             ft.Row([
                                 ft.IconButton(
-                                    icon=ft.icons.VISIBILITY,
+                                    icon=ft.Icons.VISIBILITY,
                                     icon_color="#065D30",
                                     tooltip="View",
                                     on_click=lambda _, entry_id=entry["id"]: self.view_entry(entry_id)
                                 ),
                                 ft.IconButton(
-                                    icon=ft.icons.DELETE,
+                                    icon=ft.Icons.DELETE,
                                     icon_color="#D32F2F",
                                     tooltip="Delete",
                                     on_click=lambda _, entry_id=entry["id"]: self.delete_entry(entry_id)
@@ -88,12 +88,12 @@ class HistoryPage:
                         ft.Container(
                             content=history_table,
                             padding=ft.padding.all(20),
-                            bgcolor=ft.colors.WHITE,
+                            bgcolor=ft.Colors.WHITE,
                             border_radius=10,
                             shadow=ft.BoxShadow(
                                 spread_radius=1,
                                 blur_radius=10,
-                                color=ft.colors.BLACK12,
+                                color=ft.Colors.BLACK12,
                             ),
                         ),
                     ]),

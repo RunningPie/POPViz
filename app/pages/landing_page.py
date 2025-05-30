@@ -101,7 +101,7 @@ class LandingPage:
                                                 padding=ft.padding.symmetric(horizontal=30, vertical=15),
                                             ),
                                             bgcolor="#0A5614",
-                                            color=ft.colors.WHITE,
+                                            color=ft.Colors.WHITE,
                                             on_click=go_to_prediction,
                                         ),
                                     ),

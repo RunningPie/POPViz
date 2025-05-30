@@ -13,7 +13,7 @@ class ResultPage:
     def build(self):
         # Back button
         back_button = ft.IconButton(
-            icon=ft.icons.ARROW_BACK,
+            icon=ft.Icons.ARROW_BACK,
             icon_color="#065D30",
             on_click=lambda _: self.page.go("/")
         )
@@ -21,9 +21,9 @@ class ResultPage:
         # Download button
         download_button = ft.ElevatedButton(
             "Download Protein Information",
-            icon=ft.icons.DOWNLOAD,
+            icon=ft.Icons.DOWNLOAD,
             bgcolor="#065D30",
-            color=ft.colors.WHITE,
+            color=ft.Colors.WHITE,
             style=ft.ButtonStyle(
                 shape=ft.RoundedRectangleBorder(radius=10)
             )
@@ -111,7 +111,7 @@ class ResultPage:
                 width=350,
                 height=300,
                 padding=20,
-                bgcolor=ft.colors.WHITE,
+                bgcolor=ft.Colors.WHITE,
                 border_radius=10,
                 content=ft.Column([
                     ft.Text("Predicted Protein Structure Distribution", 
@@ -130,7 +130,7 @@ class ResultPage:
                 width=350,
                 height=300,
                 padding=20,
-                bgcolor=ft.colors.WHITE,
+                bgcolor=ft.Colors.WHITE,
                 border_radius=10,
                 content=ft.Column([
                     ft.Text("Comparison with Known Protein Data", 
@@ -166,7 +166,7 @@ class ResultPage:
                         back_button,
                         ft.Container(width=20),
                         ft.Text("Protein Sequence Result", size=18, color="#065D30", weight=ft.FontWeight.BOLD),
-                        ft.Spacer(),
+                        # ft.Spacer(),
                         download_button
                     ], alignment=ft.MainAxisAlignment.START),
                     
@@ -191,7 +191,7 @@ class ResultPage:
                                 ft.Container(
                                     width=300,
                                     content=structure_image,
-                                    bgcolor=ft.colors.WHITE,
+                                    bgcolor=ft.Colors.WHITE,
                                     padding=20,
                                     border_radius=10
                                 ),
@@ -294,9 +294,9 @@ class ResultPage:
             # Percentages
             ft.Container(
                 content=ft.Column([
-                    ft.Text("60%", size=14, color=ft.colors.BLACK),
-                    ft.Text("30%", size=14, color=ft.colors.WHITE),
-                    ft.Text("10%", size=14, color=ft.colors.WHITE),
+                    ft.Text("60%", size=14, color=ft.Colors.BLACK),
+                    ft.Text("30%", size=14, color=ft.Colors.WHITE),
+                    ft.Text("10%", size=14, color=ft.Colors.WHITE),
                 ]),
                 left=50,
                 top=70,

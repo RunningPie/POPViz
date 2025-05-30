@@ -2,7 +2,9 @@ import flet as ft
 from components.navbar import Navbar
 from database.local_db import get_db, SessionLocal
 import joblib
+import json
 import pandas as pd
+import numpy as np
 
 def generate_subsequences_df(sequence: str, organism: str, min_len: int = 3, max_len: int = 7) -> pd.DataFrame:
     data = []
@@ -12,7 +14,7 @@ def generate_subsequences_df(sequence: str, organism: str, min_len: int = 3, max
         for start in range(seq_len - window_size + 1):
             sub_seq = sequence[start:start + window_size]
             data.append({
-                "organism": organism,
+                "Organism": organism,
                 "subsequence": sub_seq,
                 "length_sub_seq": len(sub_seq),
                 "start_pos": start
@@ -41,7 +43,7 @@ class InputPage:
             hint_text="Input Protein Sequence",
             border=ft.InputBorder.OUTLINE,
             width=800,
-            bgcolor=ft.colors.WHITE
+            bgcolor=ft.Colors.WHITE
         )
         
         organism_dropdown = ft.Dropdown(
@@ -61,23 +63,34 @@ class InputPage:
         self.page.overlay.append(file_picker)
         
         upload_text = ft.Text("Select a file or drag and drop here")
-        file_info = ft.Text("PDF, TXT or JSON, file size no more than 10MB", size=12, color=ft.colors.GREY_600)
+        file_info = ft.Text("PDF, TXT or JSON, file size no more than 10MB", size=12, color=ft.Colors.GREY_600)
         
         # Button to predict
         predict_button = ft.ElevatedButton(
             "Predict Structure",
             bgcolor="#065D30",
-            color=ft.colors.WHITE,
+            color=ft.Colors.WHITE,
             width=200,
             height=50,
             style=ft.ButtonStyle(
                 shape=ft.RoundedRectangleBorder(radius=10)
             )
         )
-        
+            
         def on_predict(e):
-            loaded_model = joblib.load("../../predictor")  # Ganti dengan path sesuai struktur proyekmu
+            # Load model
+            loaded_model = joblib.load("predictor/nn_model.pkl")
+            
+            # Load encoder maps
+            with open("predictor/Organism_encodemap.json", "r") as f:
+                organism_map = json.load(f)
+            with open("predictor/subsequence_encodemap.json", "r") as f:
+                subseq_map = json.load(f)
 
+            # Load scaler
+            scaler = joblib.load("predictor/scaler.pkl")
+
+            # Input dari UI
             sequence = input_field.value.strip()
             organism = organism_dropdown.value.strip()
 
@@ -87,28 +100,41 @@ class InputPage:
                 self.page.update()
                 return
 
+            # Generate raw input df
             input_df = generate_subsequences_df(sequence, organism)
 
-            # Prediksi dan probabilitas
-            preds = loaded_model.predict(input_df.drop("start_pos"))
-            probs = loaded_model.predict_proba(input_df.drop("start_pos"))
-            confidences = probs.max(axis=1)  # Ambil confidence tertinggi
+            # Apply encodings with fallback to mean (or 0.0 if safer)
+            input_df["Organism"] = input_df["Organism"].map(lambda x: organism_map.get(x, np.mean(list(organism_map.values()))))
+            input_df["subsequence"] = input_df["subsequence"].map(lambda x: subseq_map.get(x, np.mean(list(subseq_map.values()))))
 
-            # Gabungkan hasil prediksi
+            # Apply scaler to 'length_sub_seq'
+            input_df["length_sub_seq"] = scaler.transform(input_df[["length_sub_seq"]])
+            
+            # Load encoder
+            label_encoder = joblib.load("predictor/label_encoder.pkl")
+
+            # Lakukan prediksi
+            probs = loaded_model.predict(input_df.drop("start_pos", axis=1))
+            preds = np.argmax(probs, axis=1)
+            print(f"On_Predict: {preds}")
+            decoded_preds = label_encoder.inverse_transform(preds)  # ← Di sini kamu ubah ke bentuk string
+
+            # Probabilitas dan confidence
+            # probs = loaded_model.predict_proba(input_df.drop("start_pos", axis=1))
+            confidences = probs.max(axis=1)
+
+            # Gabungkan hasil
             results_df = input_df.copy()
-            results_df["predicted_structure"] = preds
+            results_df["predicted_structure"] = decoded_preds
             results_df["confidence"] = confidences
 
-            # Resolve overlapping by taking highest confidence for same start_pos
+            # Ambil prediksi dengan confidence tertinggi untuk tiap start_pos
             filtered_df = results_df.sort_values("confidence", ascending=False).drop_duplicates("start_pos")
 
-            # Simpan ke CSV sementara (bisa disimpan ke DB kalau backend-mu siap)
-            filtered_df.to_csv("../database/latest_result.csv", index=False)
+            # Simpan hasil ke CSV
+            filtered_df.to_csv("app/database/latest_result.csv", index=False)
 
-            # TODO: opsional – simpan juga ke database sebagai record (kalau ada ORM modelnya)
-            # e.g., self.db.add(ResultModel(...)); self.db.commit()
-
-            # Navigasi ke result page
+            # Navigasi ke halaman result
             self.page.go("/result")
 
             
@@ -137,7 +163,7 @@ class InputPage:
                     ),
                     ft.Container(
                         padding=ft.padding.all(40),
-                        bgcolor=ft.colors.WHITE,
+                        bgcolor=ft.Colors.WHITE,
                         border_radius=10,
                         width=800,
                         content=ft.Column([
@@ -156,13 +182,13 @@ class InputPage:
                                 ft.Container(
                                     width=350,
                                     height=1,
-                                    bgcolor=ft.colors.GREY_300
+                                    bgcolor=ft.Colors.GREY_300
                                 ),
-                                ft.Text("Or", color=ft.colors.GREY_600),
+                                ft.Text("Or", color=ft.Colors.GREY_600),
                                 ft.Container(
                                     width=350,
                                     height=1,
-                                    bgcolor=ft.colors.GREY_300
+                                    bgcolor=ft.Colors.GREY_300
                                 ),
                             ], alignment=ft.MainAxisAlignment.CENTER),
 
@@ -176,7 +202,7 @@ class InputPage:
                                 width=700,
                                 height=200,
                                 content=ft.Column([
-                                    ft.Icon(ft.icons.UPLOAD, size=40, color=ft.colors.GREY_500),
+                                    ft.Icon(ft.Icons.UPLOAD, size=40, color=ft.Colors.GREY_500),
                                     upload_text,
                                     file_info,
                                     ft.Container(height=10),
@@ -188,7 +214,7 @@ class InputPage:
                                         ),
                                         style=ft.ButtonStyle(
                                             color="#065D30",
-                                            bgcolor=ft.colors.WHITE,
+                                            bgcolor=ft.Colors.WHITE,
                                             side=ft.BorderSide(width=1),
                                             shape=ft.RoundedRectangleBorder(radius=5)
                                         )
