@@ -117,40 +117,78 @@ class InputPage:
             # Generate raw input df
             input_df = generate_subsequences_df(sequence, organism)
 
-            # Apply encodings with fallback to mean (or 0.0 if safer)
+            # Apply encodings
             input_df["Organism"] = input_df["Organism"].map(lambda x: organism_map.get(x, np.mean(list(organism_map.values()))))
             input_df["subsequence"] = input_df["subsequence"].map(lambda x: subseq_map.get(x, np.mean(list(subseq_map.values()))))
 
-            # Apply scaler to 'length_sub_seq'
+            # Scale
+            input_df["original_len"] = input_df["length_sub_seq"]  # Save before scaling
             input_df["length_sub_seq"] = scaler.transform(input_df[["length_sub_seq"]])
-            
+
             # Load encoder
             label_encoder = joblib.load("predictor/label_encoder.pkl")
 
-            # Lakukan prediksi
-            probs = loaded_model.predict(input_df.drop("start_pos", axis=1))
+            # Predict
+            probs = loaded_model.predict(input_df.drop(["start_pos", "original_len"], axis=1))
             preds = np.argmax(probs, axis=1)
-            print(f"On_Predict: {preds}")
-            decoded_preds = label_encoder.inverse_transform(preds)  # ← Di sini kamu ubah ke bentuk string
-
-            # Probabilitas dan confidence
-            # probs = loaded_model.predict_proba(input_df.drop("start_pos", axis=1))
+            decoded_preds = label_encoder.inverse_transform(preds)
             confidences = probs.max(axis=1)
 
-            # Gabungkan hasil
             results_df = input_df.copy()
             results_df["predicted_structure"] = decoded_preds
             results_df["confidence"] = confidences
+            
+            print(f"Input page results df: {results_df}")
 
-            # Ambil prediksi dengan confidence tertinggi untuk tiap start_pos
-            filtered_df = results_df.sort_values("confidence", ascending=False).drop_duplicates("start_pos")
+            # Refine predictions based on highest-confidence overlaps
+            seq_len = len(sequence)
+            structure_map = {}  # {position: (structure, confidence)}
 
-            # Simpan hasil ke CSV
-            filtered_df.to_csv("app/database/latest_result.csv", index=False)
+            for _, row in results_df.iterrows():
+                start = int(row["start_pos"])
+                end = start + int(row["original_len"])
+                for pos in range(start, end):
+                    if pos not in structure_map or row["confidence"] > structure_map[pos][1]:
+                        structure_map[pos] = (row["predicted_structure"], row["confidence"])
 
-            # Navigasi ke halaman result
+            print(f"Input page struct map: {structure_map}")
+            
+            # Group consecutive positions with same structure
+            final_segments = []
+            current_struct = None
+            current_start = None
+            current_confidences = []
+
+            for pos in sorted(structure_map.keys()):
+                struct, conf = structure_map[pos]
+                if struct != current_struct:
+                    if current_struct is not None and len(current_confidences) >= 2:
+                        final_segments.append({
+                            "Organism": organism,
+                            "start_pos": current_start,
+                            "end_pos": pos - 1,
+                            "predicted_structure": current_struct,
+                            "confidence": np.mean(current_confidences)
+                        })
+                    current_struct = struct
+                    current_start = pos
+                    current_confidences = [conf]
+                else:
+                    current_confidences.append(conf)
+
+            # Save last segment if valid
+            if current_struct and len(current_confidences) >= 2:
+                final_segments.append({
+                    "Organism": organism,
+                    "start_pos": current_start,
+                    "end_pos": pos,
+                    "predicted_structure": current_struct,
+                    "confidence": np.mean(current_confidences)
+                })
+
+            output_df = pd.DataFrame(final_segments)
+            output_df.to_csv("app/database/latest_result.csv", index=False)
             self.page.go("/result")
-
 
         predict_button.on_click = on_predict
 
@@ -229,6 +267,11 @@ class InputPage:
                                 width=800,
                                 content=ft.Column(
                                     controls=[
+                                         ft.Container(
+                                            margin=ft.margin.only(top=20),
+                                            content=organism_dropdown,
+                                            alignment=ft.alignment.center
+                                        ),
                                         # Input section
                                         ft.Text("Input Protein Sequence", weight=ft.FontWeight.BOLD),
                                         ft.Container(height=10),
