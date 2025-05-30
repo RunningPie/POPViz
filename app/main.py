@@ -10,7 +10,7 @@ def main(page: ft.Page):
     db = next(get_db())
     page.title = "POPViz - Protein Structure Predictor"
     page.window_width = 900
-    page.window_height = 700
+    page.window_height = 900
     page.theme_mode = ft.ThemeMode.LIGHT
     page.scroll = "adaptive"
 

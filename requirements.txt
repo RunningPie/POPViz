@@ -1,0 +1,11 @@
+ipykernel
+pandas
+numpy
+scikit-learn
+imblearn
+joblib
+flet
+sqlalchemy
+statsmodels
+tensorflow
+dotenv

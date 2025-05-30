@@ -9,12 +9,61 @@ class ResultPage:
         self.sequence = "HHHCCCCCCEEEEEEECCCCCCCCHHHHHCCCCCCEEEEEEEECCCCCC"
 
     def build(self):
-        # Main sequence visualization with title and download button
-        sequence_section = ft.Container(
-            margin=ft.margin.only(top=20),
-            padding=ft.padding.all(30),
+        # Back button
+        back_button = ft.IconButton(
+            icon=ft.Icons.ARROW_BACK,
+            icon_color="#065D30",
+            on_click=lambda _: self.page.go("/")
+        )
+        
+        # Download button
+        download_button = ft.ElevatedButton(
+            "Download Protein Information",
+            icon=ft.Icons.DOWNLOAD,
             bgcolor="#065D30",
-            border_radius=15,
+            color=ft.Colors.WHITE,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=10)
+            )
+        )
+        
+        # Visualization of the protein sequence with formatting
+        # Converting sequence to a colored representation
+        sequence_visualization = self.create_sequence_visualization()
+        
+        # Structure visualization placeholder
+        structure_image = ft.Column([
+            ft.Row([
+                ft.Container(
+                    content=ft.Image(
+                        src="assets/alpha_helix.png",  # Placeholder image path
+                        width=200,
+                        height=120,
+                        fit=ft.ImageFit.CONTAIN
+                    ),
+                    padding=10,
+                    border_radius=10,
+                ),
+                ft.Container(
+                    content=ft.Image(
+                        src="assets/beta_sheet.png",  # Placeholder image path
+                        width=200,
+                        height=120,
+                        fit=ft.ImageFit.CONTAIN
+                    ),
+                    padding=10,
+                    border_radius=10,
+                )
+            ], alignment=ft.MainAxisAlignment.CENTER),
+            ft.Text("Secondary Structure", weight=ft.FontWeight.BOLD)
+        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+        
+        # Insights section
+        insights = ft.Container(
+            width=700,
+            padding=20,
+            bgcolor="#F5F9F5",
+            border_radius=10,
             content=ft.Column([
                 # Centered title with download button positioned absolutely
                 ft.Stack([
@@ -68,7 +117,6 @@ class ResultPage:
                 self.create_sequence_visualization()
             ])
         )
-
         # Structure images and insights section
         content_section = ft.Container(
             margin=ft.margin.only(top=20),
@@ -245,6 +293,23 @@ class ResultPage:
                 bgcolor="#FFE788",
                 toolbar_height=70,
                 actions=[
+                    ft.TextButton("Protein Prediction", on_click=lambda _: self.page.go("/input")),
+                    ft.TextButton("History", on_click=lambda _: self.page.go("/history")),
+                ]
+            ),
+            scroll=ft.ScrollMode.AUTO,
+            content=ft.Container(
+                content=ft.Column([
+                    # Top section with title and download button
+                    ft.Row([
+                        back_button,
+                        ft.Container(width=20),
+                        ft.Text("Protein Sequence Result", size=18, color="#065D30", weight=ft.FontWeight.BOLD),
+                        # ft.Spacer(),
+                        download_button
+                    ], alignment=ft.MainAxisAlignment.START),
+                    
+                    # Sequence visualization
                     ft.Container(
                         content=ft.TextButton(
                             "Protein Prediction",
@@ -330,7 +395,6 @@ class ResultPage:
             height=350,
             fit=ft.ImageFit.CONTAIN
         )
-
     def create_bar_chart_placeholder(self):
         return ft.Image(
             src="assets/bar_chart.png",
