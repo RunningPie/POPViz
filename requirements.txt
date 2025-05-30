@@ -9,3 +9,6 @@ sqlalchemy
 statsmodels
 tensorflow
 dotenv
+plotly
+kaleido
+tqdm

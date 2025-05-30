@@ -30,7 +30,7 @@ def main(page: ft.Page):
             case "input":
                 page.views.append(input_page.build())
             case "result":
-                page.views.append(result_page.build())
+                page.views.append(result_page.build_sync())
             case "history":
                 page.views.append(history_page.build())
             case _:

@@ -138,7 +138,7 @@ class InputPage:
             results_df["predicted_structure"] = decoded_preds
             results_df["confidence"] = confidences
             
-            print(f"Input page results df: {results_df}")
+            # print(f"Input page results df: {results_df}")
 
             # Refine predictions based on highest-confidence overlaps
             seq_len = len(sequence)
@@ -151,7 +151,7 @@ class InputPage:
                     if pos not in structure_map or row["confidence"] > structure_map[pos][1]:
                         structure_map[pos] = (row["predicted_structure"], row["confidence"])
 
-            print(f"Input page struct map: {structure_map}")
+            # print(f"Input page struct map: {structure_map}")
             
             # Group consecutive positions with same structure
             final_segments = []
