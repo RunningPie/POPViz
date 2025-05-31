@@ -94,9 +94,14 @@ class InputPage:
                 
                 results = predict_structure(organism_name, full_sequence)
 
-                # Make sequence string like 'HHEECC...'
-                predicted_sequence = ''.join([pred['label'][0] for pred in results]).upper()  # assuming label like 'Helix', 'Sheet', 'Coil'
-                
+                label_to_hec = {
+                    'helix': 'H',
+                    'strand': 'E',
+                    'turn': 'C'
+                }
+
+                predicted_sequence = ''.join([label_to_hec.get(pred['label'].lower(), 'C') for pred in results])
+
                 print(f"input page predicted sequence: {predicted_sequence}")
                 
                 # Generate the graphs
@@ -109,7 +114,7 @@ class InputPage:
                 # Save the sequence in the page session or state
                 self.page.client_storage.set("predicted_sequence", predicted_sequence)
 
-                print(f"Input Page Client Storage: {self.page.client_storage}")
+                print(f"Input Page Client Storage: {self.page.client_storage.get("predicted_sequence")}")
 
                 self.page.go("/result")
             except Exception as ex:

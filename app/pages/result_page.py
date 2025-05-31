@@ -7,10 +7,8 @@ class ResultPage:
     def __init__(self, page: ft.Page):
         self.page = page
         self.db = next(get_db())
-        self.sequence = self.page.client_storage.get("predicted_sequence") or ""
 
     def create_sequence_visualization(self):
-        print(f"Result Page Client Storage: {self.page.client_storage}")
         sequence_row = ft.Row(
             wrap=True,
             spacing=3,
@@ -34,6 +32,9 @@ class ResultPage:
         )
         
     def build(self):
+        self.sequence = self.page.client_storage.get("predicted_sequence")
+        print(f"Result Page Client Storage: {self.page.client_storage.get("predicted_sequence")}")
+        print(f"Result Page Self Sequence: {self.sequence}")
         
         insights_list = generate_insights(self.sequence)
         insights_column = ft.Column(

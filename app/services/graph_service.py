@@ -13,7 +13,7 @@ def generate_structure_dot_plot(sequence, filename="structure.png"):
     os.makedirs(ASSETS_FOLDER, exist_ok=True)
     save_path = os.path.join(ASSETS_FOLDER, filename)
 
-    plt.figure(figsize=(len(sequence) // 5, 3))
+    plt.figure(figsize=(len(sequence) // 2, 3))
     colors = {'H': 'gold', 'E': 'skyblue', 'C': 'lightgreen'}
     x = range(len(sequence))
     y = [0] * len(sequence)
