@@ -12,3 +12,5 @@ dotenv
 plotly
 kaleido
 tqdm
+matplotlib
+seaborn

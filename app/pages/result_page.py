@@ -1,53 +1,272 @@
-import os
-import asyncio
 import flet as ft
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
-from tqdm import tqdm
-from flet.plotly_chart import PlotlyChart
 from components.navbar import Navbar
-from database.local_db import get_db
-
+from database.local_db import get_db, SessionLocal
+from services.result_utils import color_sequence, generate_insights
 
 class ResultPage:
     def __init__(self, page: ft.Page):
         self.page = page
         self.db = next(get_db())
-        self.pie_chart_container = ft.Container()
-        self.bar_chart_container = ft.Container()
-        self.sequence, self.df = self.load_prediction_data()
+        self.sequence = self.page.client_storage.get("predicted_sequence") or ""
 
-    def load_prediction_data(self):
-        path = "app/database/latest_result.csv"
-        if not os.path.exists(path):
-            return "", pd.DataFrame()
+    def create_sequence_visualization(self):
+        print(f"Result Page Client Storage: {self.page.client_storage}")
+        sequence_row = ft.Row(
+            wrap=True,
+            spacing=3,
+            alignment=ft.MainAxisAlignment.CENTER
+        )
 
-        df = pd.read_csv(path)
-        if df.empty:
-            return "", df
+        colored_sequence = color_sequence(self.sequence)
+        for char, color in colored_sequence:
+            sequence_row.controls.append(
+                ft.Container(
+                    content=ft.Text(char, color=color, weight=ft.FontWeight.BOLD, size=14),
+                    width=18,
+                    height=28,
+                    alignment=ft.alignment.center
+                )
+            )
 
-        max_pos = df["end_pos"].max()
-        struct_seq = ["C"] * (max_pos + 1)
+        return ft.Container(
+            alignment=ft.alignment.center,
+            content=sequence_row
+        )
+        
+    def build(self):
+        
+        insights_list = generate_insights(self.sequence)
+        insights_column = ft.Column(
+            controls=[ft.Text(text, color="#444444", size=14, text_align=ft.TextAlign.JUSTIFY) for text in insights_list]
+        )
+        
+        # Main sequence visualization with title and download button
+        sequence_section = ft.Container(
+            margin=ft.margin.only(top=20),
+            padding=ft.padding.all(30),
+            bgcolor="#065D30",
+            border_radius=15,
+            content=ft.Column([
+                # Centered title with download button positioned absolutely
+                ft.Stack([
+                    # Centered title
+                    ft.Container(
+                        content=ft.Text(
+                            "Protein Sequence Result",
+                            size=22,
+                            weight=ft.FontWeight.BOLD,
+                            color=ft.Colors.WHITE,
+                            text_align=ft.TextAlign.CENTER
+                        ),
+                        alignment=ft.alignment.center,
+                        expand=True
+                    ),
+                    # Download button positioned on the right
+                    ft.Container(
+                        content=ft.Container(
+                            width=36,
+                            height=36,
+                            content=ft.PopupMenuButton(
+                                icon=ft.Icons.DOWNLOAD,
+                                tooltip="Download Options",
+                                items=[
+                                    ft.PopupMenuItem(
+                                        text="Download this Page as PDF",
+                                        on_click=lambda _: print("Download PDF")
+                                    ),
+                                    # ft.PopupMenuItem(
+                                    #     text="Download as CSV",
+                                    #     on_click=lambda _: print("Download CSV")
+                                    # ),
+                                    ft.PopupMenuItem(
+                                        text="Download the Sequence as FASTA",
+                                        on_click=lambda _: print("Download FASTA")
+                                    ),
+                                ],
+                                style=ft.ButtonStyle(
+                                    bgcolor=ft.Colors.WHITE,
+                                    color="#065D30",
+                                    shape=ft.RoundedRectangleBorder(radius=6),
+                                    padding=ft.padding.all(4)
+                                )
+                            )
+                        ),
+                        alignment=ft.alignment.center_right
+                    )
+                ]),
+                ft.Container(height=30),
+                # Sequence visualization
+                self.create_sequence_visualization()
+            ])
+        )
 
-        for _, row in df.iterrows():
-            start = int(row["start_pos"])
-            end = int(row["end_pos"])
-            structure = row["predicted_structure"].lower()
-            code = {"helix": "H", "strand": "E", "coil": "C"}.get(structure, "C")
-            for i in range(start, end + 1):
-                if i < len(struct_seq):
-                    struct_seq[i] = code
+        # Structure images and insights section
+        content_section = ft.Container(
+            margin=ft.margin.only(top=20),
+            padding=ft.padding.all(30),
+            bgcolor="#E8F5E8",
+            border_radius=15,
+            content=ft.Column([
+                ft.Row([
+                    # Left side - Structure images
+                    ft.Container(
+                        width=500,
+                        height=400,
+                        content=ft.Column([
+                            ft.Text(
+                                "Secondary Structure",
+                                weight=ft.FontWeight.BOLD,
+                                size=18,
+                                color="#065D30",
+                                text_align=ft.TextAlign.CENTER
+                            ),
+                            ft.Container(height=20),
+                            ft.Image(
+                                src="app/assets/structure.png",  # Ganti sesuai nama file kamu
+                                width=400,
+                                height=300,
+                                fit=ft.ImageFit.CONTAIN
+                            )
+                        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                        bgcolor=ft.Colors.WHITE,
+                        padding=25,
+                        border_radius=15,
+                        shadow=ft.BoxShadow(
+                            spread_radius=1,
+                            blur_radius=8,
+                            color=ft.Colors.with_opacity(0.1, ft.Colors.BLACK),
+                            offset=ft.Offset(0, 2)
+                        )
+                    ),
+                    ft.Container(width=30),  # Spacer
+                    # Right side - Insights
+                    ft.Container(
+                        width=500,
+                        height=400,
+                        padding=25,
+                        bgcolor=ft.Colors.WHITE,
+                        border_radius=15,
+                        shadow=ft.BoxShadow(
+                            spread_radius=1,
+                            blur_radius=8,
+                            color=ft.Colors.with_opacity(0.1, ft.Colors.BLACK),
+                            offset=ft.Offset(0, 2)
+                        ),
+                        content=ft.Column([
+                            # Centered Insights title
+                            ft.Container(
+                                content=ft.Text(
+                                    "Insights", 
+                                    weight=ft.FontWeight.BOLD, 
+                                    color="#065D30", 
+                                    size=18, 
+                                    text_align=ft.TextAlign.CENTER
+                                ),
+                                alignment=ft.alignment.center,
+                                width=450  # Full width of container minus padding
+                            ),
+                            ft.Container(height=20),
+                            ft.Container(
+                                content=insights_column, expand=True
+                                # content=ft.Column([
+                                #     ft.Text(
+                                #         "High Proportion of Helices (H): The sequence contains several stretches of helices, particularly in the first and last sections. This suggests that the protein may have a significant structural role, such as forming a stable scaffold or a core structure.",
+                                #         color="#444444",
+                                #         size=14,
+                                #         text_align=ft.TextAlign.JUSTIFY
+                                #     ),
+                                #     ft.Container(height=15),
+                                #     ft.Text(
+                                #         "Beta Sheets (E): There are several sections with beta sheets, indicating that the protein might have regions involved in creating stable interactions or structural integrity through sheet formation.",
+                                #         color="#444444",
+                                #         size=14,
+                                #         text_align=ft.TextAlign.JUSTIFY
+                                #     ),
+                                #     ft.Container(height=15),
+                                #     ft.Text(
+                                #         "Coil Regions (C): The coil regions (loops) in between the helices and sheets suggest flexibility, which is important for the protein's ability to interact with other molecules or undergo conformational changes.",
+                                #         color="#444444",
+                                #         size=14,
+                                #         text_align=ft.TextAlign.JUSTIFY
+                                #     ),
+                                #     ft.Container(height=15),
+                                #     ft.Text(
+                                #         "Overall, the presence of alternating regions of helices, sheets, and coils suggests that this protein might have a dynamic, well-structured fold, combining stability (from helices and sheets) with flexibility (from coils), which is typical for many functional proteins like enzymes or receptors.",
+                                #         color="#444444",
+                                #         size=14,
+                                #         text_align=ft.TextAlign.JUSTIFY
+                                #     )
+                                # ]),
+                                # expand=True
+                            )
+                        ])
+                    )
+                ], alignment=ft.MainAxisAlignment.CENTER),
+                ft.Container(height=40),
+                # Charts section
+                ft.Row([
+                    ft.Container(
+                        width=500,
+                        height=400,
+                        padding=25,
+                        bgcolor=ft.Colors.WHITE,
+                        border_radius=15,
+                        shadow=ft.BoxShadow(
+                            spread_radius=1,
+                            blur_radius=8,
+                            color=ft.Colors.with_opacity(0.1, ft.Colors.BLACK),
+                            offset=ft.Offset(0, 2)
+                        ),
+                        content=ft.Column([
+                            ft.Text(
+                                            "Predicted Protein Structure Distribution",
+                                            size=18,
+                                            weight=ft.FontWeight.BOLD,
+                                            color="#065D30",
+                                            text_align=ft.TextAlign.CENTER
+                                        ),
+                                        ft.Container(height=30),
+                                        ft.Container(
+                                            content=self.create_pie_chart_placeholder(),
+                                            alignment=ft.alignment.center,
+                                            expand=True
+                                        )
+                                    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+                                ),
+                    ft.Container(width=30),  # Spacer
+                    ft.Container(
+                        width=500,
+                        height=400,
+                        padding=25,
+                        bgcolor=ft.Colors.WHITE,
+                        border_radius=15,
+                        shadow=ft.BoxShadow(
+                            spread_radius=1,
+                            blur_radius=8,
+                            color=ft.Colors.with_opacity(0.1, ft.Colors.BLACK),
+                            offset=ft.Offset(0, 2)
+                        ),
+                        content=ft.Column([
+                            ft.Text(
+                                "Comparison with Known Protein Data",
+                                size=18,
+                                weight=ft.FontWeight.BOLD,
+                                color="#065D30",
+                                text_align=ft.TextAlign.CENTER
+                            ),
+                            ft.Container(height=30),
+                            ft.Container(
+                                content=self.create_bar_chart_placeholder(),
+                                alignment=ft.alignment.center,
+                                expand=True
+                            )
+                        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+                    )
+                ], alignment=ft.MainAxisAlignment.CENTER)
+            ])
+        )
 
-        return "".join(struct_seq), df
-
-    def build_sync(self):
-        """Synchronous build method for Flet compatibility"""
-        # Set initial loading states
-        self.pie_chart_container.content = ft.ProgressRing(color="#065D30", stroke_width=3)
-        self.bar_chart_container.content = ft.ProgressRing(color="#065D30", stroke_width=3)
-
-        view = ft.View(
+        return ft.View(
             route="/result",
             bgcolor="#FFFBEB",
             scroll=ft.ScrollMode.AUTO,
@@ -80,6 +299,7 @@ class ResultPage:
                 ft.Container(
                     padding=ft.padding.all(30),
                     content=ft.Column([
+                        # Back button
                         ft.Container(
                             alignment=ft.alignment.center_left,
                             margin=ft.margin.only(bottom=15),
@@ -96,82 +316,30 @@ class ResultPage:
                                 )
                             )
                         ),
-                        self.create_sequence_visualization(),
-                        ft.Container(height=20),
-                        ft.Row([
-                            ft.Container(
-                                width=500,
-                                height=400,
-                                content=self.pie_chart_container,
-                                bgcolor=ft.Colors.WHITE,
-                                border_radius=15,
-                                padding=25,
-                                shadow=ft.BoxShadow(
-                                    spread_radius=1,
-                                    blur_radius=8,
-                                    color=ft.Colors.with_opacity(0.1, ft.Colors.BLACK),
-                                    offset=ft.Offset(0, 2)
-                                )
-                            ),
-                            ft.Container(width=30),
-                            ft.Container(
-                                width=500,
-                                height=400,
-                                content=self.bar_chart_container,
-                                bgcolor=ft.Colors.WHITE,
-                                border_radius=15,
-                                padding=25,
-                                shadow=ft.BoxShadow(
-                                    spread_radius=1,
-                                    blur_radius=8,
-                                    color=ft.Colors.with_opacity(0.1, ft.Colors.BLACK),
-                                    offset=ft.Offset(0, 2)
-                                )
-                            )
-                        ])
+                        # Main content
+                        sequence_section,
+                        content_section
                     ])
                 )
             ]
         )
 
-        # Add view and update page synchronously
-        self.page.views.append(view)
-        self.page.update()
-        
-        # Load charts asynchronously after the page is built
-        asyncio.create_task(self.build_async())
-        
-        return view
-
-    async def build_async(self):
-        """Async operations that happen after initial page load"""
-        await self.load_charts()
-
-    # Keep the original async build method if you need it elsewhere
-    async def build(self):
-        """Original async build - use build_sync() instead for Flet compatibility"""
-        self.build_sync()
-        await self.build_async()
-
-    async def load_charts(self):
-        with tqdm(total=2, desc="Loading Charts") as pbar:
-            pie_fig = self.create_pie_chart()
-            pbar.update(1)
-
-            bar_fig = self.create_bar_chart()
-            pbar.update(1)
-
-        self.pie_chart_container.content = PlotlyChart(pie_fig, expand=True)
-        self.pie_chart_container.update()
-
-        self.bar_chart_container.content = PlotlyChart(bar_fig, expand=True)
-        self.bar_chart_container.update()
-
     def create_sequence_visualization(self):
-        sequence_row = ft.Row(wrap=True, spacing=3, alignment=ft.MainAxisAlignment.CENTER)
+        sequence_row = ft.Row(
+            wrap=True,
+            spacing=3,
+            alignment=ft.MainAxisAlignment.CENTER
+        )
 
         for char in self.sequence:
-            color = {"H": "#FFC107", "E": "#FFFFFF", "C": "#87CEEB"}.get(char, "#FFFFFF")
+            if char == "H":
+                color = "#FFC107"  # Yellow for Helix
+            elif char == "E":
+                color = "#FFFFFF"  # White for Sheet
+            elif char == "C":
+                color = "#87CEEB"  # Light blue for Coil
+            else:
+                color = "#FFFFFF"
 
             sequence_row.controls.append(
                 ft.Container(
@@ -182,57 +350,23 @@ class ResultPage:
                 )
             )
 
-        return ft.Container(alignment=ft.alignment.center, content=sequence_row)
-
-    def create_pie_chart(self):
-        total = len(self.sequence)
-        values = [
-            self.sequence.count("H"),
-            self.sequence.count("E"),
-            self.sequence.count("C")
-        ]
-        labels = ["Helix (H)", "Strand (E)", "Coil (C)"]
-
-        fig = px.pie(
-            names=labels,
-            values=values,
-            title="Predicted Structure Distribution (%)",
-            color_discrete_sequence=["#FFC107", "#FFFFFF", "#87CEEB"]
+        return ft.Container(
+            alignment=ft.alignment.center,
+            content=sequence_row
         )
-        fig.update_traces(textposition='inside', textinfo='percent+label')
-        return fig
-
-    def create_bar_chart(self):
-        predicted_counts = {
-            "Helix": self.sequence.count("H"),
-            "Strand": self.sequence.count("E"),
-            "Coil": self.sequence.count("C")
-        }
-
-        average_counts = {
-            "Helix": 20,
-            "Strand": 15,
-            "Coil": 25
-        }
-
-        fig = go.Figure()
-        fig.add_trace(go.Bar(
-            x=list(predicted_counts.keys()),
-            y=list(predicted_counts.values()),
-            name="Predicted",
-            marker_color="#065D30"
-        ))
-        fig.add_trace(go.Bar(
-            x=list(average_counts.keys()),
-            y=list(average_counts.values()),
-            name="Known Average",
-            marker_color="#B0BEC5"
-        ))
-
-        fig.update_layout(
-            barmode='group',
-            title="Predicted vs Known Structure Count",
-            xaxis_title="Structure Type",
-            yaxis_title="Count"
+        
+    def create_pie_chart_placeholder(self):
+        return ft.Image(
+            src="app/assets/pie_chart.png",
+            width=350,
+            height=350,
+            fit=ft.ImageFit.CONTAIN
         )
-        return fig
+
+    def create_bar_chart_placeholder(self):
+        return ft.Image(
+            src="app/assets/bar_chart.png",
+            width=450,
+            height=300,
+            fit=ft.ImageFit.CONTAIN
+        )

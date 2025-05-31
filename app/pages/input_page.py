@@ -1,59 +1,16 @@
 import flet as ft
 from components.navbar import Navbar
 from database.local_db import get_db, SessionLocal
-import joblib
-import json
-import pandas as pd
-import numpy as np
-
-def generate_subsequences_df(sequence: str, organism: str, min_len: int = 3, max_len: int = 7) -> pd.DataFrame:
-    data = []
-    seq_len = len(sequence)
-
-    for window_size in range(min_len, max_len + 1):
-        for start in range(seq_len - window_size + 1):
-            sub_seq = sequence[start:start + window_size]
-            data.append({
-                "Organism": organism,
-                "subsequence": sub_seq,
-                "length_sub_seq": len(sub_seq),
-                "start_pos": start
-            })
-
-    return pd.DataFrame(data)
-
+from services.prediction_algo import on_predict as predict_structure
+from services.graph_service import generate_structure_dot_plot, generate_pie_chart, generate_bar_chart
 
 class InputPage:
     def __init__(self, page: ft.Page):
         self.page = page
         self.db = next(get_db())
-        self.organisms = [
-                        "Homo sapiens (Human)",
-                        "E. Coli (Strain K12)",
-                        "Saccharomyces cerevisiae (Baker's Yeast)",
-                        "Mus musculus (Mouse)",
-                        "Bacillus subtilis (Strain 168)",
-                        "Oryza sativa subsp. indica (Rice)"
-                        ]
-        
+
     def build(self):
-        # Create input elements
-        input_field = ft.TextField(
-            label="Input Protein Sequence",
-            hint_text="Input Protein Sequence",
-            border=ft.InputBorder.OUTLINE,
-            width=800,
-            bgcolor=ft.Colors.WHITE
-        )
-        
-        organism_dropdown = ft.Dropdown(
-            label="Select Organism",
-            options=[ft.dropdown.Option(org) for org in self.organisms],
-            width=800,
-            filled=True,
-        )
-        
-        # File picker
+        # File picker setup
         def pick_files_result(e: ft.FilePickerResultEvent):
             if e.files:
                 upload_text.value = f"Selected file: {e.files[0].name}"
@@ -61,6 +18,29 @@ class InputPage:
 
         file_picker = ft.FilePicker(on_result=pick_files_result)
         self.page.overlay.append(file_picker)
+        
+        organisms = [
+            'Homo sapiens (Human)',
+            'Escherichia coli (strain K12)',
+            'Saccharomyces cerevisiae (strain ATCC 204508 / S288c) (Baker\'s yeast)'
+            'Mus musculus (Mouse)',
+            'Bacillus subtilis (strain 168)',
+            'Anochetus emarginatus (Ant) (Stenomyrmex emarginatus)'
+        ]
+        
+        def get_options():
+            options = []
+            for organism in organisms:
+                options.append(
+                    ft.DropdownOption(
+                        key=organism,
+                        content=ft.Text(
+                            value=organism
+                        )
+                    )
+                )
+            return options
+
         # Components
         input_field = ft.TextField(
             label="Input Protein Sequence",
@@ -71,6 +51,21 @@ class InputPage:
             multiline=True,
             min_lines=1,
             max_lines=2
+        )
+        
+        def dropdown_changed(e):
+            e.control.color = e.control.value
+            self.page.update()
+        
+        organism_input = ft.Dropdown(
+            label="Choose Organism",
+            hint_text="Choose Organism",
+            border=ft.InputBorder.OUTLINE,
+            width=800,
+            bgcolor="#FFFFFF",  # input tetap putih supaya jelas
+            editable=True,
+            options=get_options(),
+            on_change=dropdown_changed,
         )
 
         upload_text = ft.Text("Select a file or drag and drop here", size=16, color=ft.Colors.GREY_700)
@@ -90,105 +85,36 @@ class InputPage:
                 )
             )
         )
-            
+
+
         def on_predict(e):
-            # Load model
-            loaded_model = joblib.load("predictor/nn_model.pkl")
-            
-            # Load encoder maps
-            with open("predictor/Organism_encodemap.json", "r") as f:
-                organism_map = json.load(f)
-            with open("predictor/subsequence_encodemap.json", "r") as f:
-                subseq_map = json.load(f)
+            try:
+                organism_name = organism_input.value
+                full_sequence = input_field.value
+                
+                results = predict_structure(organism_name, full_sequence)
 
-            # Load scaler
-            scaler = joblib.load("predictor/scaler.pkl")
+                # Make sequence string like 'HHEECC...'
+                predicted_sequence = ''.join([pred['label'][0] for pred in results]).upper()  # assuming label like 'Helix', 'Sheet', 'Coil'
+                
+                print(f"input page predicted sequence: {predicted_sequence}")
+                
+                # Generate the graphs
+                generate_structure_dot_plot(predicted_sequence)
+                generate_pie_chart(predicted_sequence)
+                # Example known averages
+                known_avg = [0.4, 0.3, 0.3]  # H, E, C proportions in known database
+                generate_bar_chart(predicted_sequence, known_avg)
 
-            # Input dari UI
-            sequence = input_field.value.strip()
-            organism = organism_dropdown.value.strip()
+                # Save the sequence in the page session or state
+                self.page.client_storage.set("predicted_sequence", predicted_sequence)
 
-            if not sequence or not organism:
-                self.page.snack_bar = ft.SnackBar(ft.Text("Please input sequence and select organism."))
-                self.page.snack_bar.open = True
-                self.page.update()
-                return
+                print(f"Input Page Client Storage: {self.page.client_storage}")
 
-            # Generate raw input df
-            input_df = generate_subsequences_df(sequence, organism)
+                self.page.go("/result")
+            except Exception as ex:
+                print(f"Prediction failed: {ex}")
 
-            # Apply encodings
-            input_df["Organism"] = input_df["Organism"].map(lambda x: organism_map.get(x, np.mean(list(organism_map.values()))))
-            input_df["subsequence"] = input_df["subsequence"].map(lambda x: subseq_map.get(x, np.mean(list(subseq_map.values()))))
-
-            # Scale
-            input_df["original_len"] = input_df["length_sub_seq"]  # Save before scaling
-            input_df["length_sub_seq"] = scaler.transform(input_df[["length_sub_seq"]])
-
-            # Load encoder
-            label_encoder = joblib.load("predictor/label_encoder.pkl")
-
-            # Predict
-            probs = loaded_model.predict(input_df.drop(["start_pos", "original_len"], axis=1))
-            preds = np.argmax(probs, axis=1)
-            decoded_preds = label_encoder.inverse_transform(preds)
-            confidences = probs.max(axis=1)
-
-            results_df = input_df.copy()
-            results_df["predicted_structure"] = decoded_preds
-            results_df["confidence"] = confidences
-            
-            # print(f"Input page results df: {results_df}")
-
-            # Refine predictions based on highest-confidence overlaps
-            seq_len = len(sequence)
-            structure_map = {}  # {position: (structure, confidence)}
-
-            for _, row in results_df.iterrows():
-                start = int(row["start_pos"])
-                end = start + int(row["original_len"])
-                for pos in range(start, end):
-                    if pos not in structure_map or row["confidence"] > structure_map[pos][1]:
-                        structure_map[pos] = (row["predicted_structure"], row["confidence"])
-
-            # print(f"Input page struct map: {structure_map}")
-            
-            # Group consecutive positions with same structure
-            final_segments = []
-            current_struct = None
-            current_start = None
-            current_confidences = []
-
-            for pos in sorted(structure_map.keys()):
-                struct, conf = structure_map[pos]
-                if struct != current_struct:
-                    if current_struct is not None and len(current_confidences) >= 2:
-                        final_segments.append({
-                            "Organism": organism,
-                            "start_pos": current_start,
-                            "end_pos": pos - 1,
-                            "predicted_structure": current_struct,
-                            "confidence": np.mean(current_confidences)
-                        })
-                    current_struct = struct
-                    current_start = pos
-                    current_confidences = [conf]
-                else:
-                    current_confidences.append(conf)
-
-            # Save last segment if valid
-            if current_struct and len(current_confidences) >= 2:
-                final_segments.append({
-                    "Organism": organism,
-                    "start_pos": current_start,
-                    "end_pos": pos,
-                    "predicted_structure": current_struct,
-                    "confidence": np.mean(current_confidences)
-                })
-
-            output_df = pd.DataFrame(final_segments)
-            output_df.to_csv("app/database/latest_result.csv", index=False)
-            self.page.go("/result")
 
         predict_button.on_click = on_predict
 
@@ -267,12 +193,12 @@ class InputPage:
                                 width=800,
                                 content=ft.Column(
                                     controls=[
-                                         ft.Container(
-                                            margin=ft.margin.only(top=20),
-                                            content=organism_dropdown,
-                                            alignment=ft.alignment.center
-                                        ),
                                         # Input section
+                                        ft.Text("Choose Organism", weight=ft.FontWeight.BOLD),
+                                        ft.Container(height=10),
+                                        organism_input,
+                                        ft.Container(height=10),
+                                        
                                         ft.Text("Input Protein Sequence", weight=ft.FontWeight.BOLD),
                                         ft.Container(height=10),
                                         input_field,
