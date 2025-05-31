@@ -60,7 +60,7 @@ class LandingPage:
                                     # Logo - Using image instead of text
                                     ft.Container(
                                         content=ft.Image(
-                                            src="assets/logo.png",  # Path ke logo image Anda
+                                            src="app/assets/logo.png",  # Path ke logo image Anda
                                             height=80,  # Sesuaikan tinggi sesuai kebutuhan
                                             fit=ft.ImageFit.CONTAIN,
                                         ),
@@ -116,7 +116,7 @@ class LandingPage:
                                 alignment=ft.alignment.center_right,
                                 margin=ft.margin.only(left=40),  # Add some margin from left content
                                 content=ft.Image(
-                                    src="assets/orang.png",
+                                    src="app/assets/orang.png",
                                     width=600,  # Increased from 500
                                     fit=ft.ImageFit.CONTAIN,
                                 ),

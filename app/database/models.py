@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime
 from .base import Base
-from datetime import datetime
+from datetime import datetime, timezone
 
 class PredictionHistory(Base):
     __tablename__ = "prediction_history"
@@ -8,5 +8,5 @@ class PredictionHistory(Base):
     id = Column(Integer, primary_key=True, index=True)
     sequence = Column(String, nullable=False)
     predicted_structure = Column(String, nullable=False)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=datetime.now(timezone.utc))
     synced = Column(Integer, default=0)  # 0 = not synced, 1 = synced

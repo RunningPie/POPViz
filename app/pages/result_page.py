@@ -2,11 +2,13 @@ import flet as ft
 from components.navbar import Navbar
 from database.local_db import get_db, SessionLocal
 from services.result_utils import color_sequence, generate_insights
+import time
 
 class ResultPage:
     def __init__(self, page: ft.Page):
         self.page = page
         self.db = next(get_db())
+        
 
     def create_sequence_visualization(self):
         sequence_row = ft.Row(
@@ -33,6 +35,7 @@ class ResultPage:
         
     def build(self):
         self.sequence = self.page.client_storage.get("predicted_sequence")
+        self.prediction_uuid = self.page.client_storage.get("prediction_uuid")
         print(f"Result Page Client Storage: {self.page.client_storage.get("predicted_sequence")}")
         print(f"Result Page Self Sequence: {self.sequence}")
         
@@ -123,7 +126,7 @@ class ResultPage:
                             ),
                             ft.Container(height=20),
                             ft.Image(
-                                src="app/assets/structure.png",  # Ganti sesuai nama file kamu
+                                src=f"app/assets/structure_{self.prediction_uuid}.png",  # Ganti sesuai nama file kamu
                                 width=400,
                                 height=300,
                                 fit=ft.ImageFit.CONTAIN
@@ -309,7 +312,7 @@ class ResultPage:
                                 icon_color="#104911",
                                 icon_size=28,
                                 bgcolor="#FFFFFF",
-                                on_click=lambda _: self.page.go("input"),
+                                on_click=lambda _: self.page.go("/input"),
                                 style=ft.ButtonStyle(
                                     shape=ft.CircleBorder(),
                                     padding=ft.padding.all(12),
@@ -358,7 +361,7 @@ class ResultPage:
         
     def create_pie_chart_placeholder(self):
         return ft.Image(
-            src="app/assets/pie_chart.png",
+            src=f"app/assets/pie_chart_{self.prediction_uuid}.png",
             width=350,
             height=350,
             fit=ft.ImageFit.CONTAIN
@@ -366,7 +369,7 @@ class ResultPage:
 
     def create_bar_chart_placeholder(self):
         return ft.Image(
-            src="app/assets/bar_chart.png",
+            src=f"app/assets/bar_chart_{self.prediction_uuid}.png",
             width=450,
             height=300,
             fit=ft.ImageFit.CONTAIN

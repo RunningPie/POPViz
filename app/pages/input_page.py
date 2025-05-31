@@ -2,7 +2,8 @@ import flet as ft
 from components.navbar import Navbar
 from database.local_db import get_db, SessionLocal
 from services.prediction_algo import on_predict as predict_structure
-from services.graph_service import generate_structure_dot_plot, generate_pie_chart, generate_bar_chart
+from services.graph_service import generate_structure_dot_plot, generate_pie_chart, generate_bar_chart, clean_old_graphs
+import uuid
 
 class InputPage:
     def __init__(self, page: ft.Page):
@@ -86,8 +87,19 @@ class InputPage:
             )
         )
 
+        loading_indicator = ft.ProgressRing(
+            color="#104911",
+            stroke_width=6,
+            visible=False  # Hidden by default
+        )
 
         def on_predict(e):
+            
+            prediction_uuid = str(uuid.uuid4())
+            
+            loading_indicator.visible = True
+            self.page.update()
+
             try:
                 organism_name = organism_input.value
                 full_sequence = input_field.value
@@ -105,19 +117,27 @@ class InputPage:
                 print(f"input page predicted sequence: {predicted_sequence}")
                 
                 # Generate the graphs
-                generate_structure_dot_plot(predicted_sequence)
-                generate_pie_chart(predicted_sequence)
+                generate_structure_dot_plot(predicted_sequence, filename=f"structure_{prediction_uuid}.png")
+                generate_pie_chart(predicted_sequence, filename=f"pie_chart_{prediction_uuid}.png")
                 # Example known averages
                 known_avg = [0.4, 0.3, 0.3]  # H, E, C proportions in known database
-                generate_bar_chart(predicted_sequence, known_avg)
+                generate_bar_chart(predicted_sequence, known_avg, filename=f"bar_chart_{prediction_uuid}.png")
 
+                clean_old_graphs(prediction_uuid)
+                
                 # Save the sequence in the page session or state
                 self.page.client_storage.set("predicted_sequence", predicted_sequence)
+                self.page.client_storage.set("prediction_uuid", prediction_uuid)
 
                 print(f"Input Page Client Storage: {self.page.client_storage.get("predicted_sequence")}")
 
+                loading_indicator.visible = False
+                self.page.update()
+                
                 self.page.go("/result")
             except Exception as ex:
+                loading_indicator.visible = False
+                self.page.update()
                 print(f"Prediction failed: {ex}")
 
 
@@ -264,7 +284,15 @@ class InputPage:
                                 margin=ft.margin.only(top=20),
                                 content=predict_button,
                                 alignment=ft.alignment.center
+                            ),
+                            
+                            # Under predict_button
+                            ft.Container(
+                                margin=ft.margin.only(top=20),
+                                content=loading_indicator,
+                                alignment=ft.alignment.center
                             )
+
                         ]
                     )
                 )

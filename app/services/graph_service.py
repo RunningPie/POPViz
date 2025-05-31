@@ -68,3 +68,20 @@ def generate_bar_chart(sequence, database_hec_avg, filename="bar_chart.png"):
     plt.tight_layout()
     plt.savefig(save_path, bbox_inches='tight')
     plt.close()
+
+def clean_old_graphs(current_uuid):
+    """
+    Deletes all graph files in assets folder that are not associated with the current UUID.
+    """
+    os.makedirs(ASSETS_FOLDER, exist_ok=True)
+
+    for filename in os.listdir(ASSETS_FOLDER):
+        if filename.startswith("structure_") or filename.startswith("pie_chart_") or filename.startswith("bar_chart_"):
+            # Example filename: structure_1234abcd.png
+            if current_uuid not in filename:
+                try:
+                    file_path = os.path.join(ASSETS_FOLDER, filename)
+                    os.remove(file_path)
+                    print(f"Deleted old graph: {filename}")
+                except Exception as e:
+                    print(f"Failed to delete {filename}: {e}")
