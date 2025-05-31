@@ -30,12 +30,23 @@ def generate_pie_chart(sequence, filename="pie_chart.png"):
     save_path = os.path.join(ASSETS_FOLDER, filename)
 
     counts = Counter(sequence)
-    labels = counts.keys()
-    sizes = counts.values()
-    colors = ['gold', 'skyblue', 'lightgreen']  # H, E, C
+    label_order = ['H', 'E', 'C']  # fixed order
+    sizes = [counts.get(label, 0) for label in label_order]
 
-    plt.figure(figsize=(5,5))
-    plt.pie(sizes, labels=labels, autopct='%1.1f%%', colors=colors)
+    # Filter out labels with 0 size
+    filtered_labels = [label for label, size in zip(label_order, sizes) if size > 0]
+    filtered_sizes = [size for size in sizes if size > 0]
+    filtered_colors = []
+    for label in filtered_labels:
+        if label == 'H':
+            filtered_colors.append('gold')
+        elif label == 'E':
+            filtered_colors.append('skyblue')
+        elif label == 'C':
+            filtered_colors.append('lightgreen')
+
+    plt.figure(figsize=(5, 5))
+    plt.pie(filtered_sizes, labels=filtered_labels, autopct='%1.1f%%', colors=filtered_colors)
     plt.savefig(save_path, bbox_inches='tight')
     plt.close()
 
