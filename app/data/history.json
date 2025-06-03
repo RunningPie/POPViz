@@ -1,0 +1,16 @@
+[
+    {
+        "uuid": "57f3eab7-6a5a-400d-8559-5a93a4e60945",
+        "sequence": "MVTRFLGPRYRELVKNWVPTAYTWGAVGAVGLVWATDWRLILDWVPYINGKFKKDN",
+        "predicted_sequence": "EHHHHHHHHHHHHHHHHHH",
+        "date": "2025-06-03 14:28:38",
+        "structure": "Mixed structures"
+    },
+    {
+        "uuid": "f3012ce0-d326-4de3-bd7d-4f6bb8ab1471",
+        "sequence": "\tMGHQQLYWSHPRKFGQGSRSCRVCSNRHGLIRKYGLNMCRQCFRQYAKDIGFIKLD",
+        "predicted_sequence": "EEHHHHHHHHHHHHHHH",
+        "date": "2025-06-03 14:28:47",
+        "structure": "Mixed structures"
+    }
+]

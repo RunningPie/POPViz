@@ -1,20 +1,48 @@
+from datetime import datetime
+import os
 import flet as ft
 from components.navbar import Navbar
-from database.local_db import get_db, SessionLocal
 from services.prediction_algo import on_predict as predict_structure
-from services.graph_service import generate_structure_dot_plot, generate_pie_chart, generate_bar_chart, clean_old_graphs
+from services.graph_service import generate_structure_dot_plot, generate_pie_chart, generate_bar_chart
 import uuid
+import json
+from PyPDF2 import PdfReader
 
 class InputPage:
     def __init__(self, page: ft.Page):
         self.page = page
-        self.db = next(get_db())
 
     def build(self):
         # File picker setup
         def pick_files_result(e: ft.FilePickerResultEvent):
             if e.files:
+                file_path = e.files[0].path  # Get local file path
                 upload_text.value = f"Selected file: {e.files[0].name}"
+                
+                # Read file content based on extension
+                try:
+                    if file_path.endswith(".txt"):
+                        with open(file_path, "r", encoding="utf-8") as f:
+                            content = f.read()
+                    elif file_path.endswith(".pdf"):
+                        reader = PdfReader(file_path)
+                        content = ""
+                        for page in reader.pages:
+                            content += page.extract_text()
+                    elif file_path.endswith(".json"):
+                        with open(file_path, "r", encoding="utf-8") as f:
+                            data = json.load(f)
+                            # Assume the protein sequence is stored under a key
+                            # You may want to adjust this depending on your JSON structure
+                            # For example if JSON is { "sequence": "MAFL..." }
+                            content = data.get("sequence", "")
+                    else:
+                        content = "Unsupported file type."
+                    
+                    input_field.value = content
+                except Exception as ex:
+                    input_field.value = f"Failed to read file: {ex}"
+                
                 self.page.update()
 
         file_picker = ft.FilePicker(on_result=pick_files_result)
@@ -92,6 +120,40 @@ class InputPage:
             stroke_width=6,
             visible=False  # Hidden by default
         )
+        
+        def save_to_history(sequence, prediction_uuid, predicted_sequence):
+            history_path = os.path.join("app", "data", "history.json")
+            os.makedirs(os.path.dirname(history_path), exist_ok=True)
+
+            # Infer structure type based on simple rule (customize better later)
+            if sequence.count("H") / len(sequence) > 0.5:
+                structure = "Alpha-helix dominant"
+            elif sequence.count("E") / len(sequence) > 0.5:
+                structure = "Beta-sheet dominant"
+            else:
+                structure = "Mixed structures"
+
+            new_entry = {
+                "uuid": prediction_uuid,
+                "sequence": sequence,
+                "predicted_sequence": predicted_sequence,
+                "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "structure": structure
+            }
+
+            # Load existing history
+            if os.path.exists(history_path):
+                with open(history_path, "r") as f:
+                    history = json.load(f)
+            else:
+                history = []
+
+            history.append(new_entry)
+
+            # Save back
+            with open(history_path, "w") as f:
+                json.dump(history, f, indent=4)
+
 
         def on_predict(e):
             
@@ -117,18 +179,18 @@ class InputPage:
                 print(f"input page predicted sequence: {predicted_sequence}")
                 
                 # Generate the graphs
-                generate_structure_dot_plot(predicted_sequence, filename=f"structure_{prediction_uuid}.png")
-                generate_pie_chart(predicted_sequence, filename=f"pie_chart_{prediction_uuid}.png")
+                generate_structure_dot_plot(predicted_sequence, prediction_uuid)
+                generate_pie_chart(predicted_sequence, prediction_uuid)
                 # Example known averages
                 known_avg = [0.4, 0.3, 0.3]  # H, E, C proportions in known database
-                generate_bar_chart(predicted_sequence, known_avg, filename=f"bar_chart_{prediction_uuid}.png")
-
-                clean_old_graphs(prediction_uuid)
+                generate_bar_chart(predicted_sequence, known_avg, prediction_uuid)
                 
                 # Save the sequence in the page session or state
                 self.page.client_storage.set("predicted_sequence", predicted_sequence)
                 self.page.client_storage.set("prediction_uuid", prediction_uuid)
 
+                save_to_history(full_sequence, prediction_uuid, predicted_sequence)
+                
                 print(f"Input Page Client Storage: {self.page.client_storage.get("predicted_sequence")}")
 
                 loading_indicator.visible = False

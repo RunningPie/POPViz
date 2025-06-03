@@ -1,19 +1,69 @@
 import flet as ft
+from services.graph_service import delete_prediction_graphs
 from components.navbar import Navbar
-from database.local_db import get_db
+import json
+import os
 
 class HistoryPage:
     def __init__(self, page: ft.Page):
         self.page = page
-        self.db = next(get_db())
+        self.dialog = None
+        self.selected_entry_to_delete = None
+    
+    def close_dialog(self, e):
+            self.dialog.open = False
+            self.page.update()
+
+    def delete_entry_confirmed(self, e):
+        # Load current history
+        history_path = os.path.join("app", "data", "history.json")
+        if os.path.exists(history_path):
+            with open(history_path, "r") as f:
+                history = json.load(f)
+
+            # Remove entry
+            history = [entry for entry in history if entry["uuid"] != self.selected_entry_to_delete]
+
+            # Save updated history
+            with open(history_path, "w") as f:
+                json.dump(history, f, indent=4)
+
+            # Delete associated graphs
+            from services.graph_service import delete_prediction_graphs
+            delete_prediction_graphs(self.selected_entry_to_delete)
+
+        self.dialog.open = False
+        self.selected_entry_to_delete = None
+
+        # Refresh the page
+        self.page.go("/history")
+        print(f"Delete success, refreshing page")
 
     def build(self):
         # Sample history data - in a real app, you would get this from your database
-        sample_history = [
-            {"id": 1, "sequence": "MHHHCCCCCE...", "date": "2023-05-01 14:32:45", "structure": "Beta-sheet dominant"},
-            {"id": 2, "sequence": "EEECCCHHHHC...", "date": "2023-05-02 09:15:22", "structure": "Alpha-helix dominant"},
-            {"id": 3, "sequence": "CCCHHHEEECC...", "date": "2023-05-02 16:48:33", "structure": "Mixed structures"},
-        ]
+        # sample_history = [
+        #     {"id": 1, "sequence": "MHHHCCCCCE...", "date": "2023-05-01 14:32:45", "structure": "Beta-sheet dominant"},
+        #     {"id": 2, "sequence": "EEECCCHHHHC...", "date": "2023-05-02 09:15:22", "structure": "Alpha-helix dominant"},
+        #     {"id": 3, "sequence": "CCCHHHEEECC...", "date": "2023-05-02 16:48:33", "structure": "Mixed structures"},
+        # ]
+        history_path = os.path.join("app", "data", "history.json")
+        if os.path.exists(history_path):
+            with open(history_path, "r") as f:
+                sample_history = json.load(f)
+        else:
+            sample_history = []
+            
+        self.dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Confirm Deletion"),
+            content=ft.Text("Are you sure you want to delete this prediction?"),
+            actions=[
+                ft.TextButton("Cancel", on_click=self.close_dialog),
+                ft.TextButton("Delete", on_click=self.delete_entry_confirmed),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        self.page.overlay.append(self.dialog)
 
         # Create DataTable with history entries
         history_table = ft.DataTable(
@@ -27,7 +77,7 @@ class HistoryPage:
             rows=[
                 ft.DataRow(
                     cells=[
-                        ft.DataCell(ft.Text(str(entry["id"]))),
+                        ft.DataCell(ft.Text(entry["uuid"][:8])),  # First 8 characters of UUID
                         ft.DataCell(ft.Text(entry["sequence"][:15] + "...")),
                         ft.DataCell(ft.Text(entry["date"])),
                         ft.DataCell(ft.Text(entry["structure"])),
@@ -37,13 +87,13 @@ class HistoryPage:
                                     icon=ft.Icons.VISIBILITY,
                                     icon_color="#065D30",
                                     tooltip="View",
-                                    on_click=lambda _, entry_id=entry["id"]: self.view_entry(entry_id)
+                                    on_click=lambda e, uuid=entry["uuid"]: self.view_entry(uuid)
                                 ),
                                 ft.IconButton(
                                     icon=ft.Icons.DELETE,
                                     icon_color="#D32F2F",
                                     tooltip="Delete",
-                                    on_click=lambda _, entry_id=entry["id"]: self.delete_entry(entry_id)
+                                    on_click=lambda e, uuid=entry["uuid"]: self.confirm_delete_entry(uuid)
                                 ),
                             ])
                         ),
@@ -127,11 +177,12 @@ class HistoryPage:
             ]
         )
 
-    def view_entry(self, entry_id):
+    def view_entry(self, entry_uuid):
         """Navigate to the result page with the selected entry"""
-        self.page.go(f"/result?id={entry_id}")
+        print(f"Navigating to: /result?id={entry_uuid}")
+        self.page.go(f"/result?id={entry_uuid}")
 
-    def delete_entry(self, entry_id):
-        """Delete the selected entry from history"""
-        print(f"Delete entry {entry_id}")
-        self.page.go("/history")
+    def confirm_delete_entry(self, entry_uuid):
+        self.selected_entry_to_delete = entry_uuid
+        self.dialog.open = True
+        self.page.update()

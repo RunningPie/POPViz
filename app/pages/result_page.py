@@ -1,15 +1,27 @@
+from urllib.parse import parse_qs, urlparse
 import flet as ft
 from components.navbar import Navbar
-from database.local_db import get_db, SessionLocal
-from services.result_utils import color_sequence, generate_insights
-import time
+from services.result_utils import color_sequence, generate_insights, generate_pdf
+import os
+import json
 
 class ResultPage:
     def __init__(self, page: ft.Page):
         self.page = page
-        self.db = next(get_db())
+        self.save_file_picker = ft.FilePicker(on_result=self.save_file_result)
+        self.page.overlay.append(self.save_file_picker)
         
+    def save_file_result(self, e: ft.FilePickerResultEvent):
+        if e.path:
+            sequence = self.sequence
+            insights = generate_insights(sequence)
+            prediction_uuid = self.prediction_uuid
 
+            # Generate the PDF directly to the chosen path
+            generate_pdf(sequence, insights, prediction_uuid, output_path=e.path)
+
+            print(f"PDF saved to: {e.path}")
+    
     def create_sequence_visualization(self):
         sequence_row = ft.Row(
             wrap=True,
@@ -33,11 +45,42 @@ class ResultPage:
             content=sequence_row
         )
         
+    def download_pdf(self, e):
+        sequence = self.sequence
+        insights = generate_insights(sequence)
+        prediction_uuid = self.prediction_uuid
+        
+        pdf_path = generate_pdf(sequence, insights, prediction_uuid)
+        self.page.launch_url(f"/{pdf_path}")
+        
     def build(self):
-        self.sequence = self.page.client_storage.get("predicted_sequence")
-        self.prediction_uuid = self.page.client_storage.get("prediction_uuid")
-        print(f"Result Page Client Storage: {self.page.client_storage.get("predicted_sequence")}")
-        print(f"Result Page Self Sequence: {self.sequence}")
+        # self.sequence = self.page.client_storage.get("predicted_sequence")
+        # self.prediction_uuid = self.page.client_storage.get("prediction_uuid")
+        # self.prediction_uuid = self.page.route.split("=")[-1]
+        # print(f"Result Page Client Storage: {self.page.client_storage.get("predicted_sequence")}")
+        # print(f"Result Page Self Sequence: {self.sequence}")
+        route_query = urlparse(self.page.route)
+        query_params = parse_qs(route_query.query)
+
+        if "id" in query_params:
+            self.prediction_uuid = query_params["id"][0]
+            # Load from history.json
+            history_path = os.path.join("app", "data", "history.json")
+            if os.path.exists(history_path):
+                with open(history_path, "r") as f:
+                    history = json.load(f)
+                selected_entry = next((item for item in history if item["uuid"] == self.prediction_uuid), None)
+                if selected_entry:
+                    self.sequence = selected_entry["predicted_sequence"]
+                else:
+                    self.sequence = ""
+            else:
+                self.sequence = ""
+        else:
+            # No id param ➔ load from client storage
+            self.sequence = self.page.client_storage.get("predicted_sequence")
+            self.prediction_uuid = self.page.client_storage.get("prediction_uuid")
+
         
         insights_list = generate_insights(self.sequence)
         insights_column = ft.Column(
@@ -76,7 +119,11 @@ class ResultPage:
                                 items=[
                                     ft.PopupMenuItem(
                                         text="Download this Page as PDF",
-                                        on_click=lambda _: print("Download PDF")
+                                        on_click=lambda _: self.save_file_picker.save_file(
+                                            dialog_title="Save PDF As ...",
+                                            file_name=f"Protein_Prediction_Result.pdf",
+                                            allowed_extensions=["pdf"]
+                                        )
                                     ),
                                     # ft.PopupMenuItem(
                                     #     text="Download as CSV",
@@ -126,7 +173,7 @@ class ResultPage:
                             ),
                             ft.Container(height=20),
                             ft.Image(
-                                src=f"app/assets/structure_{self.prediction_uuid}.png",  # Ganti sesuai nama file kamu
+                                src=f"app/assets/{self.prediction_uuid}/structure.png",  # Ganti sesuai nama file kamu
                                 width=400,
                                 height=300,
                                 fit=ft.ImageFit.CONTAIN
@@ -361,7 +408,7 @@ class ResultPage:
         
     def create_pie_chart_placeholder(self):
         return ft.Image(
-            src=f"app/assets/pie_chart_{self.prediction_uuid}.png",
+            src=f"app/assets/{self.prediction_uuid}/pie_chart.png",
             width=350,
             height=350,
             fit=ft.ImageFit.CONTAIN
@@ -369,7 +416,7 @@ class ResultPage:
 
     def create_bar_chart_placeholder(self):
         return ft.Image(
-            src=f"app/assets/bar_chart_{self.prediction_uuid}.png",
+            src=f"app/assets/{self.prediction_uuid}/bar_chart.png",
             width=450,
             height=300,
             fit=ft.ImageFit.CONTAIN

@@ -1,13 +1,20 @@
 import flet as ft
-from database.local_db import init_db, get_db
 from pages.landing_page import LandingPage
 from pages.input_page import InputPage
 from pages.result_page import ResultPage
 from pages.history_page import HistoryPage
+import os
+import sys
+
+def check_working_directory():
+    cwd = os.getcwd()
+    if not cwd.endswith("POPViz"):
+        print(f"Error: Must be run from the POPViz directory, not {cwd}")
+        sys.exit(1)
+
+check_working_directory()
 
 def main(page: ft.Page):
-    init_db()
-    db = next(get_db())
     page.title = "POPViz - Protein Structure Predictor"
     page.window_width = 900
     page.window_height = 900
@@ -24,17 +31,16 @@ def main(page: ft.Page):
         page.views.clear()
         route_name = page.route.strip("/")
 
-        match route_name:
-            case "":
-                page.views.append(landing_page.build())
-            case "input":
-                page.views.append(input_page.build())
-            case "result":
-                page.views.append(result_page.build())
-            case "history":
-                page.views.append(history_page.build())
-            case _:
-                page.views.append(ft.View("/", [ft.Text("404 Not Found")]))
+        if route_name == "":
+            page.views.append(landing_page.build())
+        elif route_name == "input":
+            page.views.append(input_page.build())
+        elif route_name == "history":
+            page.views.append(history_page.build())
+        elif route_name.startswith("result"):
+            page.views.append(result_page.build())
+        else:
+            page.views.append(ft.View("/", [ft.Text("404 Not Found")]))
 
         page.update()
 
