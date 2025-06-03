@@ -5,14 +5,17 @@ from pages.result_page import ResultPage
 from pages.history_page import HistoryPage
 import os
 import sys
+from dotenv import load_dotenv
 
-def check_working_directory():
-    cwd = os.getcwd()
-    if not cwd.endswith("POPViz"):
-        print(f"Error: Must be run from the POPViz directory, not {cwd}")
-        sys.exit(1)
+load_dotenv()
 
-check_working_directory()
+# def check_working_directory():
+#     cwd = os.getcwd()
+#     if not cwd.endswith("POPViz"):
+#         print(f"Error: Must be run from the POPViz directory, not {cwd}")
+#         sys.exit(1)
+
+# check_working_directory()
 
 def main(page: ft.Page):
     page.title = "POPViz - Protein Structure Predictor"
@@ -47,4 +50,7 @@ def main(page: ft.Page):
     page.on_route_change = route_change
     page.go(page.route)
 
-ft.app(target=main)
+if os.getenv("RUNNING_IN_DOCKER") == "1":
+    ft.app(target=main, view=ft.WEB_BROWSER)
+else:
+    ft.app(target=main)

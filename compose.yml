@@ -1,0 +1,13 @@
+services:
+  popviz:
+    build: .
+    container_name: popviz_app
+    volumes:
+      - ./app:/app/app
+      - ./ML:/app/ML
+    working_dir: /app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - RUNNING_IN_DOCKER=1
+    stdin_open: true
+    tty: true

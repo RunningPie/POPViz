@@ -1,0 +1,7 @@
+**/*venv/
+**/*cache*
+*env
+*.pyc
+.DS_Store
+.history
+build/
