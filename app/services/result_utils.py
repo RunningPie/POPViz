@@ -2,6 +2,14 @@
 
 from fpdf import FPDF
 import os
+from transformers import pipeline, AutoTokenizer, TFAutoModelForCausalLM
+
+# Load once at startup
+insight_generator = pipeline(
+    "text-generation",
+    model=TFAutoModelForCausalLM.from_pretrained("gpt2"),
+    tokenizer=AutoTokenizer.from_pretrained("gpt2")
+)
 
 def generate_pdf(sequence, insights, prediction_uuid, output_path=None):
     pdf = FPDF()
@@ -73,22 +81,11 @@ def color_sequence(sequence):
     return colored_sequence
 
 def generate_insights(sequence):
-    from collections import Counter
-    counts = Counter(sequence)
-    total = len(sequence)
-    if total == 0:
-        return ["No sequence data available."]
-
-    insights = []
-
-    if counts.get('H', 0) / total > 0.4:
-        insights.append("High proportion of helices suggests structural stability.")
-    if counts.get('E', 0) / total > 0.3:
-        insights.append("Significant amount of sheets indicates possible stable interactions.")
-    if counts.get('C', 0) / total > 0.3:
-        insights.append("Coil regions indicate flexibility in the protein structure.")
-
-    if not insights:
-        insights.append("Balanced distribution suggests a versatile protein structure.")
-
-    return insights
+    prompt = (
+        "Analyze the following protein secondary structure sequence "
+        "in HEC format and generate biological insights and functional implications:\n"
+        f"{sequence}\n\nInsights:"
+    )
+    result = insight_generator(prompt, max_length=250, temperature=0.7, num_return_sequences=1)
+    insight_text = result[0]['generated_text'][len(prompt):].strip()  # Remove prompt from output
+    return insight_text

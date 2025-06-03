@@ -168,14 +168,27 @@ class InputPage:
                 
                 results = predict_structure(organism_name, full_sequence)
 
+                # Initialize prediction with 'C' (Coil) by default
+                predicted_sequence_list = ['C'] * len(full_sequence)
+
                 label_to_hec = {
                     'helix': 'H',
                     'strand': 'E',
                     'turn': 'C'
                 }
 
-                predicted_sequence = ''.join([label_to_hec.get(pred['label'].lower(), 'C') for pred in results])
+                # Fill in based on start-end positions
+                for pred in results:
+                    label = label_to_hec.get(pred['label'].lower(), 'C')
+                    start = pred['start']
+                    end = pred['end']
+                    for i in range(start, end):
+                        if 0 <= i < len(full_sequence):
+                            predicted_sequence_list[i] = label
 
+                predicted_sequence = ''.join(predicted_sequence_list)
+                
+                # print(f"Input page results: {results}")
                 print(f"input page predicted sequence: {predicted_sequence}")
                 
                 # Generate the graphs

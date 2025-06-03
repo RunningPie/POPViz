@@ -13,16 +13,44 @@ def generate_structure_dot_plot(sequence, prediction_uuid):
     os.makedirs(folder_path, exist_ok=True)
     save_path = os.path.join(folder_path, "structure.png")
 
-    plt.figure(figsize=(len(sequence) // 2, 3))
+    # Configuration
+    wrap_size = 10  # Number of amino acids per line
+    num_lines = (len(sequence) + wrap_size - 1) // wrap_size  # Ceiling division
+
+    plt.figure(figsize=(wrap_size, num_lines * 1.5))  # Adjust figure size based on number of lines
     colors = {'H': 'gold', 'E': 'skyblue', 'C': 'lightgreen'}
-    x = range(len(sequence))
-    y = [0] * len(sequence)
-    c = [colors.get(label, 'gray') for label in sequence]
-    
-    plt.scatter(x, y, c=c, s=100, edgecolors='black')
+
+    x = []
+    y = []
+    c = []
+
+    for i, label in enumerate(sequence):
+        row = i // wrap_size
+        col = i % wrap_size
+        x.append(col)
+        y.append(-row)  # negative so lines stack downward
+        c.append(colors.get(label, 'gray'))
+
+    plt.scatter(x, y, c=c, s=1000, edgecolors='black')
+
+    # Add position markers every 20 residues
+    for i in range(0, len(sequence), 20):
+        row = i // wrap_size
+        col = i % wrap_size
+        plt.text(
+            col, -row + 0.3,  # Slightly above the dot
+            str(i + 1),       # 1-based index
+            fontsize=18,
+            ha='center',
+            va='bottom',
+            color='black'
+        )
+
     plt.axis('off')
     plt.savefig(save_path, bbox_inches='tight')
     plt.close()
+
+
 
 def generate_pie_chart(sequence, prediction_uuid):
     from collections import Counter
